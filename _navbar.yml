@@ -8,12 +8,13 @@ left:
         href: ./aboutme.html
   - text: "Project"
     menu:
-       - text: "Project part 1"
-         href: ./project1.html
+       - text: "DMD-MYOrganoids"
+         href: ./DMD-MYOrganoids.html
        - text: "Project part 2"
          href: ./project2.html
   - text: "Contact"
     href: ./contact.html
 right:
   - icon: fa-github fa-lg
-    href: https://github.com/githubusername/mywebsite
+    href: https://github.com/meanwhy22/my-first-website
+

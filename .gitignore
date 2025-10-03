@@ -10,7 +10,7 @@
 *.Rproj
 
 # Build / render artifacts
-*.html
+
 *.pdf
 *.docx
 *.pptx

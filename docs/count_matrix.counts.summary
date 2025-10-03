@@ -1,0 +1,15 @@
+Status	./reads_mapping/SRR32076135.sorted.bam	./reads_mapping/SRR32076136.sorted.bam	./reads_mapping/SRR32076137.sorted.bam	./reads_mapping/SRR32076138.sorted.bam	./reads_mapping/SRR32076139.sorted.bam	./reads_mapping/SRR32076140.sorted.bam	./reads_mapping/SRR32076141.sorted.bam	./reads_mapping/SRR32076142.sorted.bam	./reads_mapping/SRR32076143.sorted.bam	./reads_mapping/SRR32076144.sorted.bam	./reads_mapping/SRR32076145.sorted.bam	./reads_mapping/SRR32076146.sorted.bam
+Assigned	14816234	12930543	10419995	15412422	9711560	14126335	15644546	19419261	13356807	15311534	10201885	15868531
+Unassigned_Unmapped	1336931	1096420	920056	1450368	1169046	1230977	1317086	1345147	985474	1281512	862500	1224322
+Unassigned_Read_Type	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Singleton	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_MappingQuality	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Chimera	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_FragmentLength	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Duplicate	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_MultiMapping	3263570	3104859	2916817	4056841	3285194	3317201	3425377	4347212	2930721	3400891	2760490	3548076
+Unassigned_Secondary	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_NonSplit	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_NoFeatures	10972561	9490770	7934630	11895712	10223299	11512843	11454919	12829945	9189603	11081805	7724967	10116269
+Unassigned_Overlapping_Length	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Ambiguity	525259	463644	478715	562227	383495	515654	556307	702701	481450	541770	464505	611684

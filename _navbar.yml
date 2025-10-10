@@ -1,10 +1,10 @@
-name: "Mywebsite"
-title: "My new website"
+name: "Myfirstwebsite"
+title: "Minh's Notebook"
 type: inverse
 left:
-  - text: "About me"
+  - text: "Resume"
     menu:
-      - text: "Learn more about me"
+      - text: "About Minh"
         href: ./aboutme.html
   - text: "Project"
     menu:

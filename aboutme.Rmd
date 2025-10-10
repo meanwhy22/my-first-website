@@ -1,33 +1,38 @@
 ---
-title: "About Me"
+title: "About Minh"
 output:
   html_document:
-    theme: flatly        # you can try cerulean, cosmo, lumen, etc.
+    theme: flatly
     highlight: textmate
     toc: false
     toc_float: false
+    includes:
+      in_header: assets/fontawesome.html
+    css: assets/style.css
 ---
 
-# About Me
+## Some stuff about me
 
-Hi! I'm **Minh-Y TRAN**, a Master's graduate from Université Paris-Saclay currently based in Ho Chi Minh City, Vietnam.
+-   My name is actually **Y**, but I believe it is easier for many foreign friends to call me by my middle name, **Minh**. Though if you come visit my hometown and ask people around about Minh, you would probably never find me.
 
-I love Vietnamese goi cuon, Korean kimchi, and French croissants.  
-My recent favorite series is *Peaky Blinders* — finished all 6 seasons in one week.
+-   I'm a huge fan Vietnamese goi cuon, Korean kimchi, and French croissants.
 
----
+-   My recent favorite series is *Peaky Blinders*. Finished all 6 seasons in one week.
 
 ## Education
 
-| Degree | Year | Institution | Country |
-|:--|:--|:--|:--|
-| Master 2 GenE2 | 2024–2025 | Université Paris-Saclay | France |
+| Degree               | Year      | Institution                        | Country |
+|:-----------------|:-----------------|:-----------------|:-----------------|
+| Master 2 GenE2       | 2024–2025 | Université Paris-Saclay            | France  |
 | BSc in Biotechnology | 2020–2024 | International University – VNU-HCM | Vietnam |
-
----
 
 ## Find me
 
-- 📧 [minh-y.tran@universite-paris-saclay.fr](mailto:minh-y.tran@universite-paris-saclay.fr)
-- 💼 [LinkedIn](https://www.linkedin.com/in/tranminhy)
-- 🌍 Based in Ho Chi Minh City, Vietnam
+-   <i class="fa-solid fa-envelope"></i> [minh-y.tran\@universite-paris-saclay.fr](mailto:minh-y.tran@universite-paris-saclay.fr)
+-   <i class="fa-brands fa-linkedin"></i> [LinkedIn](https://www.linkedin.com/in/tranminhy)
+-   <i class="fa-solid fa-location-dot"></i> Ho Chi Minh City, Vietnam
+
+<div style="text-align:center;">
+  ![My cats](assets/images/my-cats.jpg)
+  <span class="figure-caption">My two little brothers</span>
+</div>

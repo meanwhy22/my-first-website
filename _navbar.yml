@@ -5,11 +5,11 @@ left:
   - text: "Resume"
     menu:
       - text: "About Minh"
-        href: ./aboutme.html
+        href: /docs/aboutme.html
   - text: "Project"
     menu:
        - text: "DMD-MYOrganoids"
-         href: ./DMD-MYOrganoids.html
+         href: /docs/DMD-MYOrganoids.html
        - text: "Project part 2"
          href: ./project2.html
   - text: "Contact"

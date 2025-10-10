@@ -1,0 +1,33 @@
+---
+title: "About Me"
+output:
+  html_document:
+    theme: flatly        # you can try cerulean, cosmo, lumen, etc.
+    highlight: textmate
+    toc: false
+    toc_float: false
+---
+
+# About Me
+
+Hi! I'm **Minh-Y TRAN**, a Master's graduate from Université Paris-Saclay currently based in Ho Chi Minh City, Vietnam.
+
+I love Vietnamese goi cuon, Korean kimchi, and French croissants.  
+My recent favorite series is *Peaky Blinders* — finished all 6 seasons in one week.
+
+---
+
+## Education
+
+| Degree | Year | Institution | Country |
+|:--|:--|:--|:--|
+| Master 2 GenE2 | 2024–2025 | Université Paris-Saclay | France |
+| BSc in Biotechnology | 2020–2024 | International University – VNU-HCM | Vietnam |
+
+---
+
+## Find me
+
+- 📧 [minh-y.tran@universite-paris-saclay.fr](mailto:minh-y.tran@universite-paris-saclay.fr)
+- 💼 [LinkedIn](https://www.linkedin.com/in/tranminhy)
+- 🌍 Based in Ho Chi Minh City, Vietnam

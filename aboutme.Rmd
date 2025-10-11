@@ -15,24 +15,64 @@ output:
 
 -   My name is actually **Y**, but I believe it is easier for many foreign friends to call me by my middle name, **Minh**. Though if you come visit my hometown and ask people around about Minh, you would probably never find me.
 
--   I'm a huge fan Vietnamese goi cuon, Korean kimchi, and French croissants.
+-   I'm a huge fan Vietnamese goi cuon, Korean kimchi, and French croissants 🥐
 
 -   My recent favorite series is *Peaky Blinders*. Finished all 6 seasons in one week.
 
 ## Education
 
-| Degree               | Year      | Institution                        | Country |
-|:-----------------|:-----------------|:-----------------|:-----------------|
-| Master 2 GenE2       | 2024–2025 | Université Paris-Saclay            | France  |
-| BSc in Biotechnology | 2020–2024 | International University – VNU-HCM | Vietnam |
+::::::::::: timeline
+:::::: timeline-item
+::: timeline-year
+2024–2025
+:::
+
+<div style="display:flex; flex-direction:column;">
+::: timeline-degree
+Master 2 GenE2
+:::
+::: timeline-note
+Mention Très Bien
+:::
+</div>
+
+::: timeline-institution
+Université Paris-Saclay \| France
+:::
+::::::
+
+:::::: timeline-item
+::: timeline-year
+2020–2024
+:::
+
+<div style="display:flex; flex-direction:column;">
+::: timeline-degree
+BSc in Biotechnology
+:::
+::: timeline-note
+Excellent degree
+:::
+</div>
+
+::: timeline-institution
+International University – VNU-HCM \| Vietnam
+:::
+::::::
+:::::::::::
 
 ## Find me
 
--   <i class="fa-solid fa-envelope"></i> [minh-y.tran\@universite-paris-saclay.fr](mailto:minh-y.tran@universite-paris-saclay.fr)
--   <i class="fa-brands fa-linkedin"></i> [LinkedIn](https://www.linkedin.com/in/tranminhy)
--   <i class="fa-solid fa-location-dot"></i> Ho Chi Minh City, Vietnam
+<ul class="contact-info">
 
-<div style="text-align:center;">
-  ![My cats](assets/images/my-cats.jpg)
-  <span class="figure-caption">My two little brothers</span>
-</div>
+<li><i class="fa-solid fa-envelope"></i> <a href="mailto:minh-y.tran@universite-paris-saclay.fr">minh-y.tran\@universite-paris-saclay.fr</a></li>
+
+<li><i class="fa-brands fa-linkedin"></i> <a href="https://www.linkedin.com/in/tranminhy">LinkedIn</a></li>
+
+<li><i class="fa-solid fa-location-dot"></i> Ho Chi Minh City, Vietnam</li>
+
+</ul>
+
+::: {style="text-align:center;"}
+![My cats](assets/images/my-cats.jpg) [My two little brothers]{.figure-caption}
+:::

@@ -1,5 +1,24 @@
 name: "My new website"
 output_dir: 'docs'
+navbar:
+  title: "Minh's Notebook"
+  type: inverse
+  left:
+    - text: "Resume"
+      menu:
+        - text: "About Minh"
+          href: aboutme.html
+    - text: "Project"
+      menu:
+        - text: "DMD-MYOrganoids"
+          href: DMD-MYOrganoids.html
+        - text: "Project part 2"
+          href: project2.html
+    - text: "Contact"
+      href: contact.html
+  right:
+    - icon: fa-github fa-lg
+      href: https://meanwhy22.github.io/my-first-website/
 output:
   html_document:
     theme: flatly

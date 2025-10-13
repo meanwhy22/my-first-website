@@ -8,12 +8,10 @@ navbar:
       menu:
         - text: "About Minh"
           href: aboutme.html
-    - text: "Project"
+    - text: "Projects"
       menu:
-        - text: "DMD-MYOrganoids"
-          href: DMD-MYOrganoids.html
-        - text: "Project part 2"
-          href: project2.html
+        - text: "My practice sessions"
+          href: projects.html
     - text: "Contact"
       href: contact.html
   right:

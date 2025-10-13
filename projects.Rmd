@@ -1,0 +1,21 @@
+---
+title: "My practice sessions"
+output:
+  html_document:
+    theme: flatly
+    highlight: textmate
+    toc: false
+    toc_float: false
+    includes:
+      in_header: assets/fontawesome.html
+    css: assets/style.css
+---
+
+### Practice #1: RNA-seq analysis of DMD muscle organoids
+
+🔗 [Link to preprint](https://doi.org/10.1101/2023.07.26.550063)\
+🌼 [Link to session](DMD-MYOrganoids.html)
+
+------------------------------------------------------------------------
+
+### Project #2: Single-cell RNA-seq of healthy, mdx, and mdx/D2 mouse muscle

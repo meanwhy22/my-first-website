@@ -85,7 +85,7 @@ DIA_DMD_12months
 
 <details>
 
-<summary>**Compute percent.mt**</summary>
+<summary>Compute percent.mt</summary>
 
 ```{r percent.mt}
 
@@ -139,7 +139,7 @@ for (obj_name in samples) {
 
 <details>
 
-<summary>**To make the plots**</summary>
+<summary>To make the plots</summary>
 
 ```{r QC_plots, echo=TRUE, fig.height=10, fig.width=12, message=FALSE, warning=FALSE, results='hide'}
 
@@ -184,7 +184,7 @@ DIA_DMD_subset <- subset(DIA_DMD_12months,
                            percent.mt < 25)
 ```
 
-```{r QC_plots_filtered, echo=FALSE, fig.height=10, fig.width=12}
+```{r QC_plots_filtered, echo=FALSE, fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
 
 ## WT
 
@@ -394,7 +394,7 @@ Some clusters appear hard be identified by classical markers → check **GO enri
 
 <details>
 
-<summary>**To assign new cell cluster identities**</summary>
+<summary>To assign new cell cluster identities</summary>
 
 ```{r annotation, eval=FALSE, include=TRUE}
 
@@ -428,9 +428,9 @@ merged_data$celltype <- Idents(merged_data)
 
 <details>
 
-<summary>**GO enrichment analysis & visualization**</summary>
+<summary>GO enrichment analysis & visualization</summary>
 
-```{r go_enrichment, echo=FALSE, fig.height=8, fig.width=10, message=FALSE, warning=FALSE}
+```{r go_enrichment, fig.height=8, fig.width=10, message=FALSE, warning=FALSE}
 
 merged_data <- readRDS("merged_data.rds")
 
@@ -796,7 +796,7 @@ plots <- list(
 
 </details>
 
-```{r echo=FALSE}
+```{r echo=FALSE, fig.height=8, fig.width=10}
 wrap_plots(plots, design = layout)
 ```
 
@@ -858,7 +858,7 @@ p2 <- DimPlot(merged_data,
 
 <details>
 
-<summary>Differential expression analysis between DMD and WT condition</summary>
+<summary>**Differential expression analysis between DMD and WT condition**</summary>
 
 ```{r DMD_vs_WT, fig.height=5, fig.width=7}
 
@@ -1181,14 +1181,12 @@ p
 
 ## #3 - Is there any module of genes?
 
-(AKA Co-expression network analysis. Though we don't seem to have enough samples for this task.)
-
-*This part follows the [tutorial](https://smorabit.github.io/hdWGCNA/articles/basic_tutorial.html) on hdWGCNA package website.*
+(AKA Co-expression network analysis. Though we don't seem to have enough samples for this task.) *This part follows the [tutorial](https://smorabit.github.io/hdWGCNA/articles/basic_tutorial.html) on hdWGCNA package website.*
 
 ### Set up Seurat object for WGCNA
 
-```{r setup_for_WGCNA, echo=TRUE}
-knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```{r setup_for_WGCNA, echo=TRUE, warning = FALSE, message = FALSE}
+
 library(hdWGCNA)
 library(WGCNA)
 

@@ -1,5 +1,5 @@
 ---
-title: "DMD-MYOrganoids"
+title: "RNA-seq analysis of DMD muscle organoids"
 output: html_document
 date: "2025-09-29"
 ---
@@ -8,12 +8,11 @@ date: "2025-09-29"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## DATA PREPROCESSING
+In this practice session I'm going to note down the steps to re-analyze an RNA-seq study. [Palmieri et al. (2025)](https://www.biorxiv.org/content/10.1101/2023.07.26.550063v4) generated an organoid-like structure from DMD muscle cells (derived from patient iPSCs) co-cultured with fibroblasts. This dataset contains **12 samples** of **3 conditions**: IsoCTR, Untreated (disease), and Treated (disease treated with high dose of AAV gene therapy). Each condition includes **4 biological replicates**. Raw data are available in the NCBI Bioproject database under accession PRJNA1208956.
 
-In this practice I'm going to note down all the steps to re-analyze a simple RNA-seq study. Data are obtained from our collaborator (Genethon; <https://www.biorxiv.org/content/10.1101/2023.07.26.550063v4>) who generated an organoid-like structure from DMD muscle cells (derived from patient iPSCs) co-cultured with fibroblasts. This dataset contains **12 samples** of **3 conditions**: IsoCTR, Untreated (disease exacerbated due to fibroblast incorporation), and Treated (MYOrganoid treated with high dose of AAV gene therapy). Each condition includes **4 biological replicates**.
+# From FASTQ files to count table
 
-```{bash eval=FALSE, include=FALSE}
-
+```{bash eval=FALSE, include=TRUE}
 # Get table from ENA API
 # This table contains the links to all raw fastq files
 
@@ -27,12 +26,13 @@ awk -F'\t' 'NR>1 {print $2}' ena_runs.txt | tr ';' '\n' | while read url; do
 done
 ```
 
-### Quality Control of Raw Sequencing Reads
+<details>
+
+<summary>**QC of raw sequencing reads**</summary>
 
 First, raw fastq files are imported into FastQC for some quality control checks. In return, we receive an HTML-based report on each fastq file.
 
-```{bash eval=FALSE, include=FALSE}
-
+```{bash eval=FALSE, include=TRUE}
 # module load fastqc
 # mkdir -p reads_qc
 
@@ -45,8 +45,7 @@ done
 
 It seems that the adapters haven't been cut. We'll use `fastp`, an all-in-one fastq file preprocessor, for this job.
 
-```{bash eval=FALSE, include=FALSE}
-
+```{bash eval=FALSE, include=TRUE}
 # module load fastp
 # mkdir -p clean_reads
 
@@ -65,20 +64,23 @@ do
 done
 ```
 
-[Note:]{.underline} *If the job keeps crashing, try to do half the number of samples until sorted BAM, delete fastq files, then proceed the other half.*
+[Note:]{.underline} If the job keeps crashing, try to do half the number of samples until sorted BAM, delete fastq files, then proceed the other half.
 
 Often check folder size:
 
-```{bash eval=FALSE, include=FALSE}
-
+```{bash eval=FALSE, include=TRUE}
 du -sh /shared/home/minhytran/* | sort -h
 ```
 
-#### Read Mapping to the Reference Genome
+</details>
+
+<details>
+
+<summary>**Read mapping to reference genome**</summary>
 
 Prior to alignment, we need to download human reference genome (GRCh38/hg38, as done in the preprint) and index it.
 
-```{bash eval=FALSE, include=FALSE}
+```{bash eval=FALSE, include=TRUE}
 
 # Download reference genome
 curl -o ref_genome/GCF_000001405.40_GRCh38.p14_genomic.fna.gz \
@@ -97,7 +99,7 @@ ref_genome/index_hisat2/human
 
 Now we'll map the (paired) reads to the reference. Remember to use 'clean' fastq files. To avoid crashing the alignment, [directly output sorted BAM files]{.underline} (skip SAM and unsorted BAM).
 
-```{bash eval=FALSE, include=FALSE}
+```{bash eval=FALSE, include=TRUE}
 
 # module load hisat2 samtools
 # mkdir -p reads_mapping
@@ -117,13 +119,17 @@ do
 done
 ```
 
-#### SAM/BAM File Manipulation with Samtools
+</details>
+
+<details>
+
+<summary>**Manipulate SAM/BAM file with Samtools**</summary>
 
 -   Convert SAM to BAM file (binary format) → save space (DONE)
 
 -   BAM files need to be [sorted]{.underline} (DONE) and [indexed]{.underline}
 
-```{bash eval=FALSE, include=FALSE}
+```{bash eval=FALSE, include=TRUE}
 
 # module load samtools
 
@@ -137,11 +143,15 @@ do
 done
 ```
 
-#### Generate count table
+</details>
+
+<details>
+
+<summary>**Generate count table**</summary>
 
 Now we pass all the sorted, indexed BAM files through `featureCounts` function (subread package) to generate the count matrix. We also need an annotation file to do this. Parameters `-t "exon" -g gene_id` are to count reads mapped to exon then summarize to gene-level (i.e. many exons belong to one gene id).
 
-```{bash eval=FALSE, include=FALSE}
+```{bash eval=FALSE, include=TRUE}
 
 # Download annotation file (.gtf)
 wget ftp://ftp.ensembl.org/pub/release-100/gtf/homo_sapiens/Homo_sapiens.GRCh38.100.gtf.gz
@@ -158,9 +168,11 @@ featureCounts -a ./ref_genome/Homo_sapiens.GRCh38.100.gtf \
 ./reads_mapping/SRR*.sorted.bam
 ```
 
-Now we can read the count table into R for differential expression analysis:
+</details>
 
-```{r echo=TRUE}
+Now we can [read the count table into R]{.underline} for differential expression analysis:
+
+```{r read_count_table, echo=TRUE}
 
 count_tab <- read.table(file = "count_matrix.counts",
                         header = TRUE,
@@ -179,18 +191,21 @@ colnames(count_tab) <- gsub("^\\.\\.reads_mapping\\.", "",
                             colnames(count_tab)) # from the start, drop "..reads_mapping"
 
 colnames(count_tab)
+
+# Drop annotation columns and keep the counts only
+count_tab <- count_tab[, -c(1:5)]
 ```
 
-Drop all annotation columns and keep the counts only:
-
-```{r echo=TRUE}
-count_tab <- count_tab[, -c(1:5)]
-head(count_tab)
+```{r echo=FALSE}
+library(dplyr)
+knitr::kable(head(count_tab), 
+             caption = "Count table: genes as rows, samples as columns") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 ```
 
 Also read the **metadata** file:
 
-```{r echo=TRUE}
+```{r read_metadata, echo=TRUE}
 
 library(readxl)
 metadata <- read_excel("metadata.xlsx")
@@ -212,18 +227,16 @@ meta <- meta[colnames(count_tab), , drop=FALSE]
 all(rownames(meta) == colnames(count_tab))
 ```
 
-## DESeq2 ANALYSIS
+# DESeq2 analysis
 
-#### Create DESeqDataSet object
+## Create DESeqDataSet object
 
 DESeq2 expects a raw count matrix as input. The model will internally correct for library size.
 
 [Note:]{.underline} `nrow(colData) == ncol(countData)`
 
 ```{r echo=TRUE, message=FALSE}
-
 library(DESeq2)
-
 dds <- DESeqDataSetFromMatrix(
   countData = count_tab, 
   colData = meta,
@@ -231,7 +244,7 @@ dds <- DESeqDataSetFromMatrix(
 dds
 ```
 
-#### Filter low count genes
+## Filter low count genes
 
 Here we're keeping only genes that have at least 10 read counts in at least 4 samples. In the mean-sd plot, the variance is stabilized, meaning [genes with low and high mean counts all have similar variances]{.underline}.
 
@@ -246,14 +259,13 @@ vsd <- vst(dds_filt)
 meanSdPlot(assay(vsd))
 ```
 
-#### Data quality control by clustering samples
+## Data quality control by clustering samples
 
 For differential expression analysis, DESeq2 operates directly on the *raw counts*. However, for clustering and visualization, we better use normalized and transformed counts. DESeq2 uses a normalization method called **median of ratios**.
 
 [Note:]{.underline} we have to run differential expression analysis to add normalization factors (since it's an all-in-one function)
 
 ```{r echo=TRUE}
-
 # DESeqDataSet object does not store a matrix of normalized counts by default
 # We can to get it by: counts(dds, normalized=TRUE)  
 
@@ -271,8 +283,7 @@ ntd <- normTransform(dds_filt, f = log2, pc = 1)
 
 This is a **heatmap** of [top 50 highly expressed genes]{.underline}. Expression values are presented as normalized, log2-transformed counts and are row-scaled (so that mean expression of each gene across samples is 0). Here we see samples are clustered based on top gene expression.
 
-```{r echo=TRUE, fig.height=12, fig.width=8}
-
+```{r top_gene_heatmap, echo=TRUE, fig.height=12, fig.width=8}
 library("pheatmap")
 pheatmap(assay(ntd)[select_top_genes,],          
          scale = "row",     # z score     
@@ -284,7 +295,7 @@ pheatmap(assay(ntd)[select_top_genes,],
 
 We can make a heatmap of (euclidean) **distances** between each pair of samples. With this, we have an overall idea of [how samples are similar to each other]{.underline}.
 
-```{r echo=TRUE, fig.height=8, fig.width=8}
+```{r dist_matrix_heatmap, echo=TRUE, fig.height=8, fig.width=8}
 
 sampleDists <- dist(t(assay(vsd)))  
 
@@ -307,7 +318,7 @@ plotPCA(vsd, intgroup="sample_type",
         ntop=10000)
 ```
 
-#### Differential expression analysis
+## Differential expression analysis
 
 `DESeq(dds)` performs:
 
@@ -338,7 +349,11 @@ summary(Treated_vs_IsoCTR)
 
 For the **volcano plot**, we'll use the full `results` table and highlight the significant hits. Be careful that there are genes where `padj` is missing due to [independent filtering inside DESeq2]{.underline} (prior to multiple testing correction) or `log2FoldChange` is missing [if a gene has zero counts across all samples of one condition]{.underline}.
 
-```{r volcano_plot, echo=TRUE, fig.height=7, fig.width=7}
+<details>
+
+<summary>To make volcano plot</summary>
+
+```{r volcano_plot, echo=TRUE, fig.height=7, fig.width=7, message=FALSE, warning=FALSE}
 
 # Load libraries 
 library(tidyverse)
@@ -406,11 +421,15 @@ p <- ggplot(data = Treated_vs_IsoCTR_DEGs,
            y = max(-log10(Treated_vs_IsoCTR_DEGs$padj), na.rm=TRUE), 
            label = paste0("Down: ", counts$Down), 
            hjust = 0, vjust = 1, col = "#00AFBB")
+```
+
+</details>
+
+```{r echo=FALSE}
 p
 ```
 
 ```{r echo=TRUE}
-
 # Write the file
 write.table(Treated_vs_IsoCTR_DEGs,
             file = "DEG_List/Treated_vs_IsoCTR_DEGs.txt",
@@ -430,7 +449,6 @@ summary(Untreated_vs_IsoCTR)
 ```
 
 ```{r write-table, echo=TRUE}
-
 # Remove genes where log2FC or padj is missing
 # Make row names a column EMSEMBL
 
@@ -468,7 +486,7 @@ Treated_vs_Untreated <-
 summary(Treated_vs_Untreated)
 ```
 
-#### Crossing DE gene sets: Venn diagram
+## Crossing DE gene sets: Venn diagram
 
 We wanna intersect 3 sets of DE genes:
 
@@ -507,7 +525,7 @@ ggVennDiagram(x, label_alpha = 0,
   scale_fill_gradient(low = "white", high = "orange")
 ```
 
-#### Gene Set Enrichment Analysis (GSEA)
+## Gene Set Enrichment Analysis (GSEA)
 
 Prior to GSEA, we need to create a ranked list of the genes. But first of all, let's tidy our table of DEGs (just as before).
 
@@ -570,7 +588,7 @@ GOBP_all <- msigdbr(
 head(GOBP_all)
 ```
 
-Running GSEA with all <GO:BP> gene sets:
+Running GSEA with all GO:BP gene sets:
 
 ```{r gsea, echo=TRUE}
 
@@ -642,7 +660,7 @@ p2_list <- wrap_plots(p2, ncol = 1,
 plot_grid(p1_list, p2_list, ncol = 1, align = "v")
 ```
 
-#### Convert ENSEMBL ID to gene symbol (optional)
+## Convert ENSEMBL ID to gene symbol (optional)
 
 There are many ways to get gene names based on Ensembl IDs. However, some IDs, usually corresponding to non-coding RNAs, do not match a gene symbol. If we care only about protein-coding genes, maybe go back to `featureCounts` and consider reads that map CDS.
 

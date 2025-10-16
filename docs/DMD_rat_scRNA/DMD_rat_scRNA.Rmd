@@ -1,0 +1,1465 @@
+---
+title: "scRNA-seq of DMD rat model"
+date: "2025-10-13"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+bibliography: references.bib
+csl: apa.csl
+nocite: "@*"
+---
+
+[Taglietti et al. (2022)](https://doi.org/10.1186/s40478-022-01355-2) created a rat model for DMD by CRISPR KO of exon 52 of dystrophin-encoding gene in the animal zygotes. Following functional assessment, they performed the single-cell RNA-seq of diaphragms of healthy (**WT**) and **R-DMDdel52** 12-month-old rats. In this practice session, we'll start from the count matrix deposited in NCBI Gene Expression Omnibus database under the accession GSE198237.
+
+```{r setup, include=TRUE, warning = FALSE, message = FALSE}
+
+# Load libs ----
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(stringr)
+library(Seurat)
+library(Matrix)
+library(harmony)
+library(clusterProfiler)
+library(org.Rn.eg.db)
+library(msigdbr)
+
+# For plotting ----
+library(circlize)
+library(patchwork)
+library(ggplot2)
+library(ggrepel)
+library(viridis)
+library(scCustomize)
+library(ComplexHeatmap)
+library(enrichplot)
+```
+
+# Preprocessing
+
+## Load 10X count matrix
+
+<details>
+
+<summary>**How to create Seurat objects**</summary>
+
+```{r read10X, message=FALSE, warning=FALSE}
+
+## To create Seurat object for each sample ----
+
+# list all folders (1 folder = 1 muscle sample)
+samples <- list.dirs(c("DIA_WT_12months", "DIA_DMD_12months"))
+
+# loop through and read each dataset
+for (folder in samples) {
+  foldername <- basename(folder)            # get just the folder name
+  data <- Read10X(data.dir = folder)        # read 10X data
+  assign(paste0(foldername, ".data"), data) # create object [name].data
+  
+  # create Seurat object
+  seu <- CreateSeuratObject(
+    counts = data,
+    project = foldername,
+    min.features = 200,   # include only cells where >=200 features detected
+    min.cells = 3         # include only features that are detected in >=3 cells
+  )
+  
+  assign(foldername, seu) # put the object back into environment
+}
+```
+
+</details>
+
+```{r view_seurat_object, echo=TRUE}
+
+# Seurat objects ----
+DIA_WT_12months
+DIA_DMD_12months
+```
+
+## Quality control
+
+### %Mt
+
+<details>
+
+<summary>**Compute percent.mt**</summary>
+
+```{r percent.mt}
+
+## loop %mt calculation ----
+for (obj_name in samples) {
+  seu <- get(obj_name)
+  seu[["percent.mt"]] <- PercentageFeatureSet(seu, pattern = "^Mt[-\\.]")
+  assign(obj_name, seu)
+}
+```
+
+</details>
+
+```{r view_metadata, echo=FALSE}
+
+# percent.mt is added to metadata table ----
+knitr::kable(head(DIA_WT_12months@meta.data), 
+             caption = "'percent.mt' is added to metadata table") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+### Visualize QC metrics (before filtering)
+
+```{r QC_metrics_saved, eval=FALSE, include=FALSE}
+
+# make output folder for plots
+dir.create("QC_plots", showWarnings = FALSE)
+
+# loop the visualization of QC metrics ----
+
+for (obj_name in samples) {
+  seu <- get(obj_name)
+  
+  # individual plots
+  p1 <- VlnPlot(seu, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+                ncol = 3, pt.size = 1)
+  p2 <- FeatureScatter(seu, feature1 = "nCount_RNA", feature2 = "percent.mt")
+  p3 <- FeatureScatter(seu, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+  
+  # combine into one figure
+  combined_plot <- p1 / (p2 | p3)
+  
+  # save to file
+  ggsave(
+    filename = paste0("QC_plots/", obj_name, "_QCplots.pdf"),
+    plot = combined_plot,
+    width = 12, height = 10
+  )
+}
+```
+
+<details>
+
+<summary>**To make the plots**</summary>
+
+```{r QC_plots, echo=TRUE, fig.height=10, fig.width=12, message=FALSE, warning=FALSE, results='hide'}
+
+## WT
+
+  # individual plots
+  p1 <- VlnPlot(DIA_WT_12months, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+                ncol = 3, pt.size = 1)
+  p2 <- FeatureScatter(DIA_WT_12months, feature1 = "nCount_RNA", feature2 = "percent.mt")
+  p3 <- FeatureScatter(DIA_WT_12months, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+  
+  # combine plots
+  p1 / (p2 | p3)
+  
+## DMD
+
+  # individual plots
+  p1 <- VlnPlot(DIA_DMD_12months, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+                ncol = 3, pt.size = 1)
+  p2 <- FeatureScatter(DIA_DMD_12months, feature1 = "nCount_RNA", feature2 = "percent.mt")
+  p3 <- FeatureScatter(DIA_DMD_12months, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+  
+  # combine plots
+  p1 / (p2 | p3)
+```
+
+</details>
+
+### Filtering poor-quality cells
+
+```{r filtering, echo=TRUE, message=FALSE, warning=FALSE}
+
+# Filtering ----
+DIA_WT_subset <- subset(DIA_WT_12months, 
+                         subset = nFeature_RNA > 300 & nFeature_RNA < 4000 &
+                           nCount_RNA < 15000 & 
+                           percent.mt < 25)
+
+DIA_DMD_subset <- subset(DIA_DMD_12months, 
+                         subset = nFeature_RNA > 300 & nFeature_RNA < 4000 &
+                           nCount_RNA > 200 & nCount_RNA < 15000 & 
+                           percent.mt < 25)
+```
+
+```{r QC_plots_filtered, echo=FALSE, fig.height=10, fig.width=12}
+
+## WT
+
+  # individual plots
+  p1 <- VlnPlot(DIA_WT_subset, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+                ncol = 3, pt.size = 1)
+  p2 <- FeatureScatter(DIA_WT_subset, feature1 = "nCount_RNA", feature2 = "percent.mt")
+  p3 <- FeatureScatter(DIA_WT_subset, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+  
+  # combine plots
+  p1 / (p2 | p3)
+  
+## DMD
+
+  # individual plots
+  p1 <- VlnPlot(DIA_DMD_subset, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+                ncol = 3, pt.size = 1)
+  p2 <- FeatureScatter(DIA_DMD_subset, feature1 = "nCount_RNA", feature2 = "percent.mt")
+  p3 <- FeatureScatter(DIA_DMD_subset, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+  
+  # combine plots
+  p1 / (p2 | p3)
+```
+
+### Merge two samples
+
+```{r merge, echo=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
+
+# Merge 2 Seurat objects ----
+merged_data <- merge(
+  DIA_WT_subset,
+  y = DIA_DMD_subset,
+  add.cell.ids = c("WT", "DMD"), # optional
+  project = "DMD_rat_scRNA"
+) %>% JoinLayers()
+
+# Add 'condition' metadata
+merged_data@meta.data <- merged_data@meta.data %>%
+  mutate(condition = case_when(
+    orig.ident == "DIA_WT_12months" ~ "WT",
+    orig.ident == "DIA_DMD_12months" ~ "DMD"
+  ))
+# Reorder the 'condition' levels
+merged_data$condition <- factor(merged_data$condition, levels = c("WT", "DMD"))
+
+merged_data
+
+# Plot together
+
+  # individual plots
+  p1 <- VlnPlot(merged_data, group.by = "condition",
+        features = c("nFeature_RNA", "nCount_RNA", "percent.mt"),
+        ncol = 3, pt.size = 0.5)
+  p2 <- FeatureScatter(merged_data, group.by = "condition",
+                       feature1 = "nCount_RNA", feature2 = "percent.mt")
+  p3 <- FeatureScatter(merged_data, group.by = "condition",
+                       feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+  
+  # combine plots
+  p1 / (p2 | p3)
+```
+
+# Standard workflow
+
+```{r seurat_workflow, echo=TRUE, fig.height=4, fig.width=5}
+
+merged_data <- NormalizeData(merged_data,
+                             assay = 'RNA',
+                             verbose = FALSE) %>% 
+  FindVariableFeatures(selection.method = 'vst',
+                       nfeatures = 3000,
+                       verbose = FALSE) %>%
+  ScaleData(assay = 'RNA',
+            # vars.to.regress = c("percent.mt"),
+            verbose = FALSE) %>%
+  RunPCA(assay = 'RNA',
+         reduction.name = "RNA_pca",
+         npcs = 50,
+         verbose = FALSE)
+
+# Elbow plot
+ElbowPlot(
+  merged_data,
+  reduction = 'RNA_pca',
+  ndims = 50
+)
+```
+
+<details>
+
+<summary>**How much variance do 10 first PCs account for?**</summary>
+
+```{r cumulative_var, echo=TRUE}
+
+# How much variance do 10 first PCs account for ? ----
+stdev <- merged_data@reductions$RNA_pca@stdev
+var_explained <- (stdev^2) / sum(stdev^2)
+cumsum(var_explained)[10]
+```
+
+</details>
+
+## Clustering
+
+### UMAP
+
+```{r umap_clustering, echo=TRUE, fig.height=4, fig.width=10, message=FALSE, warning=FALSE}
+
+merged_data <- RunUMAP(merged_data,
+                       reduction = "RNA_pca",
+                       reduction.name = "RNA_umap",
+                       dims = 1:10, verbose = FALSE) %>% 
+  FindNeighbors(reduction = 'RNA_pca', 
+                graph.name = 'RNA_snn',
+                dims = 1:10, verbose = FALSE) %>% 
+  FindClusters(resolution = 0.2, graph.name = 'RNA_snn')
+
+# following FindClusters a metadata called 'RNA_snn_res.0.2' is created
+# the last clustering goes to 'seurat_clusters' metadata
+
+# visualize the clusters ----
+p1 <- DimPlot(merged_data, reduction = "RNA_umap",
+              group.by="condition")
+p2 <- DimPlot(merged_data, reduction = "RNA_umap",
+              group.by="seurat_clusters")
+p1 + p2
+```
+
+### tSNE
+
+```{r tSNE_plot, echo=TRUE, fig.height=4, fig.width=10}
+
+merged_data <- RunTSNE(merged_data,
+                       reduction = "RNA_pca",
+                       reduction.name = "RNA_tsne",
+                       dims = 1:10)
+
+# visualize the clusters ----
+p1 <- DimPlot(merged_data, reduction = "RNA_tsne",
+              group.by="condition")
+p2 <- DimPlot(merged_data, reduction = "RNA_tsne",
+              group.by="seurat_clusters")
+p1 + p2
+```
+
+## Identify cell populations
+
+### Find markers
+
+```{r find_markers, echo=TRUE, fig.height=12, fig.width=10, message=FALSE, warning=FALSE}
+
+## DE analysis between cells of one cluster versus cells in ALL other clusters ----
+
+# find markers (by default, p is adjusted by Bonferroni correction)
+cluster_markers <- FindAllMarkers(
+  merged_data,
+  assay = "RNA", 
+  group.by = "RNA_snn_res.0.2",
+  only.pos = TRUE,       # Wilcoxon's rank sum test by default
+  return.thresh = 0.01,  # only return markers that have p-value < 0.01
+  
+  min.pct = 0.25, # only test genes that are detected in a minimum percentage of 
+                  # 0.25 of cells in either of the 2 populations
+  
+  logfc.threshold = 0.6 # limit testing to gene which show at least 1.5-fold 
+                        # difference between two groups
+)
+
+# threshold to significant markers
+sig_markers <- subset(cluster_markers, p_val_adj < 0.01)
+
+# top marker genes in each cell cluster
+top_markers <- sig_markers %>% 
+  group_by(cluster) %>% 
+  top_n(n=10, wt = avg_log2FC)
+
+## Heatmap based on top markers ----
+DoHeatmap(merged_data, 
+          assay = "RNA",
+          group.by = "RNA_snn_res.0.2",
+          features = unique(top_markers$gene))
+```
+
+### Classical markers
+
+```{r classical_markers, echo=FALSE, fig.height=8, fig.width=10}
+
+classical_markers <- c(
+  "Cdh5",                              # endothelial
+  "Pdgfra", "Dcn", "Fbn1",             # FAPs
+  "Scx",                               # tenocytes
+  "Acta2",                             # smooth muscle
+  "Pax3", "Pax7", "Myf5", "Myod1",     # MuSCs
+  "Ptprc", "Cd68",                     # macrophage
+  "Ckm", "Tnnc2", "Tnni2", "Tnnt3"     # myocytes
+)
+
+VlnPlot(merged_data,
+        features = classical_markers,
+        group.by = "RNA_snn_res.0.2",
+        ncol = 4, pt.size = 0)
+```
+
+Some clusters appear hard be identified by classical markers → check **GO enrichment** (below)
+
+### Annotate cell types
+
+<details>
+
+<summary>**To assign new cell cluster identities**</summary>
+
+```{r annotation, eval=FALSE, include=TRUE}
+
+# assign cell ids ----  
+
+new.cluster.ids <- c(   
+  "0" = "Endothelial",   
+  "1" = "Endothelial",   
+  "2" = "FAPs",   
+  "3" = "Smooth muscle",
+  "4" = "MuSCs",
+  "5" = "Macrophage",   
+  "6" = "Myocyte",   
+  "7" = "T cell",   
+  "8" = "B cell",   
+  "9" = "Neural cells"
+  )  
+
+# rename the clusters ----  
+
+merged_data <- RenameIdents(merged_data, new.cluster.ids) 
+merged_data$celltype <- Idents(merged_data)
+
+  # at this point, we may want to save the integrated object:
+  # saveRDS(merged_data, file="merged_data.rds")
+```
+
+</details>
+
+### GO enrichment of cluster markers
+
+<details>
+
+<summary>**GO enrichment analysis & visualization**</summary>
+
+```{r go_enrichment, echo=FALSE, fig.height=8, fig.width=10, message=FALSE, warning=FALSE}
+
+merged_data <- readRDS("merged_data.rds")
+
+## Rerun FindAllMarkers on saved Seurat object ----
+cluster_markers <- FindAllMarkers(merged_data, assay = "RNA", group.by = "ident", only.pos = TRUE, return.thresh = 0.01, min.pct = 0.25, logfc.threshold = 0.6)
+
+# threshold to significant markers
+sig_markers <- subset(cluster_markers, p_val_adj < 0.01)
+
+## GO analysis on identified markers ----
+
+### Endothelial ###
+
+endo_markers <- (sig_markers %>% filter(cluster=="Endothelial"))$gene
+
+# convert gene symbols to Entrez IDs (for clusterProfiler)
+endo <- bitr(endo_markers,
+                fromType = "SYMBOL",
+                toType = "ENTREZID",
+                OrgDb = org.Rn.eg.db)
+
+# run GO enrichment
+ego <- enrichGO(gene          = endo$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = "ENTREZID",
+                ont           = "BP",      # biological process
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+## Visualize ----
+df <- as.data.frame(ego@result)
+  
+  # because GeneRatio is NOT yet numeric
+  df <- df %>%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts <- strsplit(x, "/")[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # top BP terms
+  top <- df %>%
+    arrange(desc(GeneRatioNum)) %>%
+    slice_head(n = 5) %>%
+    mutate(Description = recode(Description, "regulation of angiogenesis" = "angiogenesis", 
+                                             "regulation of vasculature development" = "vasculature development")) %>% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+endo_GOBP <- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = "-log10(adj p)", option = "C") +
+  labs(x = "Gene Ratio", y = NULL, title = "Endothelial") +
+  theme_classic()
+
+
+### FAPs ###
+
+FAPs_markers <- (sig_markers %>% filter(cluster=="FAPs"))$gene
+
+# gene symbols to Entrez IDs
+FAPs <- bitr(FAPs_markers, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Rn.eg.db)
+
+# GO enrichment
+ego <- enrichGO(gene          = FAPs$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = "ENTREZID",
+                ont           = "BP",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+# visualize ----
+df <- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df <- df %>%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts <- strsplit(x, "/")[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top <- df %>%
+    filter(Description %in% c(
+    "extracellular matrix organization",
+    "connective tissue development",
+    "transforming growth factor beta receptor superfamily signaling pathway",
+    "wound healing"
+  )) %>%
+    arrange(desc(GeneRatioNum)) %>%
+    mutate(Description = recode(Description, "extracellular matrix organization" = "ECM organization", "transforming growth factor beta receptor superfamily signaling pathway" = "TGFb signaling")) %>% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+FAPs_GOBP <- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = "-log10(adj p)", option = "C") +
+  labs(x = "Gene Ratio", y = NULL, title = "FAPs") +
+  theme_classic()
+
+
+### Smooth muscle cells ###
+
+SMC_markers <- (sig_markers %>% filter(cluster=="Smooth muscle"))$gene
+
+# gene symbols to Entrez IDs
+SMC <- bitr(SMC_markers,
+                fromType = "SYMBOL",
+                toType = "ENTREZID",
+                OrgDb = org.Rn.eg.db)
+
+# GO enrichment
+ego <- enrichGO(gene          = SMC$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = "ENTREZID",
+                ont           = "BP",      # biological process
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+# visualize ----
+df <- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df <- df %>%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts <- strsplit(x, "/")[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top <- df %>%
+    filter(Description %in% c(
+    "regulation of monoatomic ion transport",
+    "mesenchyme development",
+    "muscle contraction",
+    "actin filament organization",
+    "Wnt signaling pathway",
+    "negative regulation of cell adhesion"
+  )) %>%
+    arrange(desc(GeneRatioNum)) %>%
+    mutate(Description = recode(Description, "regulation of monoatomic ion transport" = "ion transport", "negative regulation of cell adhesion" = "cell adhesion ↓")) %>% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+SMC_GOBP <- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = "-log10(adj p)", option = "C") +
+  labs(x = "Gene Ratio", y = NULL, title = "Smooth muscle cells") +
+  theme_classic()
+
+
+### Macrophage ###
+
+macro_markers <- (sig_markers %>% filter(cluster=="Macrophage"))$gene
+
+# gene symbols to Entrez IDs
+macro <- bitr(macro_markers,
+                fromType = "SYMBOL",
+                toType = "ENTREZID",
+                OrgDb = org.Rn.eg.db)
+
+# GO enrichment
+ego <- enrichGO(gene          = macro$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = "ENTREZID",
+                ont           = "BP",      # biological process
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+# visualize ----
+df <- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df <- df %>%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts <- strsplit(x, "/")[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top <- df %>%
+    filter(Description %in% c(
+    "mononuclear cell proliferation",
+    "myeloid cell differentiation",
+    "chemotaxis"
+  )) %>%
+    arrange(desc(GeneRatioNum)) %>%
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+macro_GOBP <- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = "-log10(adj p)", option = "C") +
+  labs(x = "Gene Ratio", y = NULL, title = "Macrophages") +
+  theme_classic()
+
+
+### T cell ###
+
+T_cell_markers <- (sig_markers %>% filter(cluster=="T cell"))$gene
+
+# convert gene symbols to Entrez IDs (for clusterProfiler)
+T_cell <- bitr(T_cell_markers,
+                fromType = "SYMBOL",
+                toType = "ENTREZID",
+                OrgDb = org.Rn.eg.db)
+
+# run GO enrichment
+ego <- enrichGO(gene          = T_cell$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = "ENTREZID",
+                ont           = "BP",      # biological process
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+# visualize ----
+df <- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df <- df %>%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts <- strsplit(x, "/")[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top <- df %>% filter(Description %in% c("lymphocyte differentiation",
+                                          "regulation of T cell activation",
+                                          "response to virus")) %>% 
+    arrange(desc(GeneRatioNum)) %>% 
+    mutate(Description = recode(Description, "regulation of T cell activation" = "T cell activation")) %>% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+T_cell_GOBP <- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = "-log10(adj p)", option = "C") +
+  labs(x = "Gene Ratio", y = NULL, title = "T cells") +
+  theme_classic()
+
+
+### B cell ###
+
+B_cell_markers <- (sig_markers %>% filter(cluster=="B cell"))$gene
+
+# convert gene symbols to Entrez IDs (for clusterProfiler)
+B_cell <- bitr(B_cell_markers,
+                fromType = "SYMBOL",
+                toType = "ENTREZID",
+                OrgDb = org.Rn.eg.db)
+
+# run GO enrichment
+ego <- enrichGO(gene          = B_cell$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = "ENTREZID",
+                ont           = "BP",      # biological process
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+# visualize ----
+df <- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df <- df %>%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts <- strsplit(x, "/")[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top <- df %>%
+    filter(Description %in% c(
+    "B cell activation",
+    "lymphocyte differentiation",
+    "antigen receptor-mediated signaling pathway"
+  )) %>%
+    arrange(desc(GeneRatioNum)) %>%
+    mutate(Description = recode(Description, "antigen receptor-mediated signaling pathway" = "antigen receptor-mediated\nsignaling")) %>% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+B_cell_GOBP <- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = "-log10(adj p)", option = "C") +
+  labs(x = "Gene Ratio", y = NULL, title = "B cells") +
+  theme_classic()
+
+
+### Neural cell ###
+
+neuro_markers <- (sig_markers %>% filter(cluster=="Neural cells"))$gene
+
+# convert gene symbols to Entrez IDs (for clusterProfiler)
+neuro <- bitr(neuro_markers,
+                fromType = "SYMBOL",
+                toType = "ENTREZID",
+                OrgDb = org.Rn.eg.db)
+
+# run GO enrichment
+ego <- enrichGO(gene          = neuro$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = "ENTREZID",
+                ont           = "BP",      # biological process
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+# visualize ----
+df <- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df <- df %>%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts <- strsplit(x, "/")[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top <- df %>% 
+    arrange(desc(GeneRatioNum)) %>% 
+    slice_head(n = 5) %>% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+neuro_GOBP <- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = "-log10(adj p)", option = "C") +
+  labs(x = "Gene Ratio", y = NULL, title = "Neural cells") +
+  theme_classic()
+
+
+## Combine GO enrichment plots ----
+
+layout <- "
+AB
+CD
+EF
+G-
+"
+
+plots <- list(
+  A = endo_GOBP,
+  B = FAPs_GOBP,
+  C = SMC_GOBP,
+  D = macro_GOBP,
+  E = T_cell_GOBP,
+  F = B_cell_GOBP,
+  G = neuro_GOBP
+)
+```
+
+</details>
+
+```{r echo=FALSE}
+wrap_plots(plots, design = layout)
+```
+
+### Cell type composition
+
+```{r cell_number_condition, echo=FALSE}
+
+# Count number of cells per cluster per condition
+n_cells <- FetchData(merged_data,                       
+                     vars = c("celltype", "condition")) %>%         
+  dplyr::count(celltype, condition) %>%         
+  tidyr::spread(celltype, n)
+# View table 
+knitr::kable(n_cells, caption = "Number of each cell type in each condition") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+<details>
+
+<summary>Plot the *proportion* of each cell type in each condition:</summary>
+
+```{r cell_type_composition, echo=FALSE, fig.height=8, fig.width=10}
+
+# Cell type composition ----
+
+comp_df <- merged_data@meta.data %>%
+  dplyr::count(condition, 
+               celltype) %>%
+  group_by(condition) %>%
+  mutate(freq = n / sum(n))
+
+p3 <- ggplot(comp_df, aes(x = condition, y = freq, fill = celltype)) +
+  geom_bar(stat = "identity", position = "fill") +
+  geom_text(aes(label = scales::percent(freq, accuracy = 0.1)),
+            position = position_fill(vjust = 0.5), size = 2) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(y = "Cell type proportion", x = "Condition") +
+  theme_classic()
+
+p1 <- DimPlot(merged_data,
+              reduction = "RNA_tsne",
+              group.by = "celltype",
+              label = TRUE)
+
+p2 <- DimPlot(merged_data,
+              reduction = "RNA_tsne",
+              split.by = "condition",
+              label = TRUE)
+
+(p2) / (p1 | p3) + 
+  plot_layout(widths = c(2, 1.5, 0.5))
+```
+
+</details>
+
+# Questions
+
+## #1 - How many genes were up/down-regulated in DMD versus WT rat diaphragm?
+
+<details>
+
+<summary>Differential expression analysis between DMD and WT condition</summary>
+
+```{r DMD_vs_WT, fig.height=5, fig.width=7}
+
+# Test differential expression ----
+DMD_vs_WT <- FindMarkers(
+  merged_data,
+  assay = "RNA",
+  group.by = "condition",
+  ident.1 = "DMD",
+  ident.2 = "WT",
+  only.pos = FALSE
+)
+DMD_vs_WT$gene <- rownames(DMD_vs_WT)
+
+# Classify: up, down, or non-significant
+DMD_vs_WT$regulation <- ifelse(
+  DMD_vs_WT$p_val_adj < 0.01 & 
+    DMD_vs_WT$avg_log2FC > 1, "Up",
+  ifelse( DMD_vs_WT$p_val_adj < 0.01 &
+            DMD_vs_WT$avg_log2FC < -1, "Down",
+          "NotSig")
+)
+
+# Count up/down genes
+counts <- DMD_vs_WT %>%
+  filter(regulation %in% c("Up","Down")) %>%
+  group_by(regulation) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  tidyr::pivot_wider(names_from = regulation, values_from = n, values_fill = 0)
+
+# Volcano plot
+p <- ggplot(data = DMD_vs_WT,
+            aes(x = avg_log2FC,
+                y = -log10(p_val_adj))) +
+  geom_point(aes(col = regulation)) +
+  
+  # Add threshold lines
+  geom_hline(yintercept = -log10(0.01), 
+             col = "black", 
+             linetype = 'dashed') +
+  
+  geom_vline(xintercept = c(-1, 1),
+           col = "black",
+           linetype = 'dashed') +
+  
+  scale_color_manual(values = c("Down"="#00AFBB",
+                                "NotSig"="grey",
+                                "Up"="#E41A1C"),
+                     labels = c("Down"="Downregulated", 
+                                "NotSig"="Not significant", 
+                                "Up"="Upregulated")) +
+  
+  labs(x = "log2FC (average expression)",
+       y = "-log10(p_val_adj)",
+       color = "Regulation", 
+       title = "DMD versus WT rat diaphragm") + 
+  theme_minimal() +
+  
+  # Annotate number of up/down genes on the plot 
+  annotate("text", x = max(DMD_vs_WT$avg_log2FC, na.rm=TRUE), 
+           y = max(-log10(DMD_vs_WT$p_val_adj), na.rm=TRUE), 
+           label = paste0("Up: ", counts$Up), 
+           hjust = 1, vjust = 1, col = "#E41A1C") +
+  
+  annotate("text", x = min(DMD_vs_WT$avg_log2FC, na.rm=TRUE), 
+           y = max(-log10(DMD_vs_WT$p_val_adj), na.rm=TRUE), 
+           label = paste0("Down: ", counts$Down), 
+           hjust = 0, vjust = 1, col = "#00AFBB")
+
+# Top genes significantly up
+top_up <- DMD_vs_WT %>%
+  filter(regulation == "Up") %>%
+  arrange(p_val_adj, desc(avg_log2FC)) %>%
+  slice_head(n = 20)
+
+# Top genes significantly down
+top_down <- DMD_vs_WT %>%
+  filter(regulation == "Down") %>%
+  arrange(p_val_adj, avg_log2FC) %>%
+  slice_head(n = 20)
+```
+
+</details>
+
+```{r DMD_vs_WT_volcano_plot, echo=FALSE, fig.height=5, fig.width=7}
+
+# Annotate 'top' genes on the plot ----
+p + geom_text_repel(
+  data = bind_rows(top_up, top_down),
+  aes(label = gene),
+  size = 3,
+  box.padding = 0.4,
+  max.overlaps = 20
+)
+```
+
+## #2 - Which GO_BP terms are enriched among these up/down genes?
+
+<details>
+
+<summary>GO enrichment analysis</summary>
+
+```{r go_enrich_analysis, fig.height=5, fig.width=18, message=FALSE, warning=FALSE}
+
+## GO analysis on Up genes ----
+
+# gene symbols to Entrez IDs
+DMD_vs_WT_Up <- bitr((DMD_vs_WT %>% filter(regulation=="Up"))$gene,
+                fromType = "SYMBOL",
+                toType = "ENTREZID",
+                OrgDb = org.Rn.eg.db)
+
+# GO enrichment
+ego <- enrichGO(gene          = DMD_vs_WT_Up$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = "ENTREZID",
+                ont           = "BP",      # biological process
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+# visualize ----
+df <- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df <- df %>%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts <- strsplit(x, "/")[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top <- df %>%
+    filter(Description %in% c(
+      "extracellular matrix organization",
+      "connective tissue development",
+      "transforming growth factor beta receptor superfamily signaling pathway",
+      "wound healing", 
+      "tissue remodeling", 
+      "negative regulation of cell migration"
+    )) %>% 
+    arrange(desc(GeneRatioNum)) %>%
+    mutate(Description = recode(Description, "extracellular matrix organization" = "ECM organization", "transforming growth factor beta receptor superfamily signaling pathway" = "TGFb signaling", "negative regulation of cell migration" = "negative regulation of\ncell migration"))  %>%
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+DMD_vs_WT_Up_GOBP <- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = "-log10(adj p)", option = "C") +
+  labs(x = "Gene Ratio", y = NULL, title = "GO enrichment of\ngenes upregulated in DMD versus WT rat diaphragm") +
+  theme_classic()
+
+
+## GO analysis on Down genes ----
+
+# gene symbols to Entrez IDs
+DMD_vs_WT_Down <- bitr((DMD_vs_WT %>% filter(regulation=="Down"))$gene,
+                fromType = "SYMBOL",
+                toType = "ENTREZID",
+                OrgDb = org.Rn.eg.db)
+
+# GO enrichment
+ego <- enrichGO(gene          = DMD_vs_WT_Down$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = "ENTREZID",
+                ont           = "BP",      # biological process
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+# visualize ----
+df <- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df <- df %>%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts <- strsplit(x, "/")[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top <- df %>%
+    filter(Description %in% c(
+      "immune response-activating signaling pathway",
+      "lymphocyte proliferation",
+      "leukocyte cell-cell adhesion",
+      "B cell activation",
+      "T cell differentiation"
+    )) %>% 
+    arrange(desc(GeneRatioNum)) %>%
+    mutate(Description, recode(Description, "immune response-activating signaling pathway" = "immune response-activating\nsignaling pathway")) %>% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+DMD_vs_WT_Down_GOBP <- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = "-log10(adj p)", option = "C") +
+  labs(x = "Gene Ratio", y = NULL, title = "GO enrichment of\ngenes downregulated in DMD versus WT rat diaphragm") +
+  theme_classic()
+```
+
+</details>
+
+```{r echo=FALSE, fig.height=5, fig.width=18}
+
+## Combine plots ----
+DMD_vs_WT_Up_GOBP + DMD_vs_WT_Down_GOBP
+```
+
+## #2bis - Gene Set Enrichment Analysis (GSEA)
+
+<details>
+
+<summary>Step 1: Create ranked gene list</summary>
+
+```{r rank_list, echo=TRUE, message=FALSE, warning=FALSE}
+
+# Add column for Entrez IDs converted from gene symbols 
+DMD_vs_WT$ENTREZID <- mapIds(
+  org.Rn.eg.db,
+  keys = DMD_vs_WT$gene,
+  column = "ENTREZID",
+  keytype = "SYMBOL",
+  multiVals = "first"
+)
+
+# Create a ranked list ----
+DMD_vs_WT_ranked <- DMD_vs_WT %>% 
+  arrange(desc(avg_log2FC)) %>%
+  pull(avg_log2FC, name=ENTREZID) # create named vector
+
+head(DMD_vs_WT_ranked)
+```
+
+</details>
+
+<details>
+
+<summary>Step 2: Obtain the gene sets of interest</summary>
+
+```{r gene_set, echo=TRUE, message=FALSE, warning=FALSE}
+
+rat_GOBP <- msigdbr(
+  species = "Rattus norvegicus",
+  category = "C5",
+  subcategory = "GO:BP"
+) %>% 
+  dplyr::select(gs_name, entrez_gene)
+```
+
+</details>
+
+```{r view_gene_set, echo=FALSE}
+
+knitr::kable(head(rat_GOBP), caption = "Gene sets associated with GO biological processes") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+<details>
+
+<summary>Step 3: Run GSEA with all <GO:BP> gene sets</summary>
+
+```{r run_gsea, echo=TRUE, message=FALSE, warning=FALSE}
+
+rat_GOBP_gsea <- GSEA(
+  DMD_vs_WT_ranked,
+  TERM2GENE = rat_GOBP,
+  pvalueCutoff = 0.05)
+```
+
+</details>
+
+```{r view_gsea_results, echo=FALSE}
+
+# List of gene sets with significant enrichment
+knitr::kable(head(rat_GOBP_gsea@result), caption = "GSEA results") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+<details>
+
+<summary>Visualize GSEA results: Up & Down pathways</summary>
+
+```{r gsea_plot, fig.height=10, fig.width=15}
+
+gsea_res <- as.data.frame(rat_GOBP_gsea)
+up_pathways <- gsea_res %>% filter(NES > 0 & p.adjust < 0.05)
+down_pathways <- gsea_res %>% filter(NES < 0 & p.adjust < 0.05)
+
+# Select top pathways based on enrichment score ----
+top_up <- up_pathways %>% arrange(desc(NES)) %>% head(10)
+top_down <- down_pathways %>% arrange(NES) %>% head(10)
+
+  # combine (up to down)
+  top_combined <- bind_rows(top_up, top_down)
+
+# Plot ----
+p <- ggplot(top_combined, 
+       aes(x = reorder(Description, NES), 
+           y = NES, fill = NES > 0)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c("TRUE" = "firebrick", "FALSE" = "steelblue"),
+                    labels = c("Down", "Up")) +
+  labs(x = "", y = "Normalized Enrichment Score (NES)",
+       fill = "",
+       title = "Top up- and down-regulated GO:BP pathways") +
+  theme_bw() +
+  theme(text = element_text(size = 12))
+```
+
+</details>
+
+```{r display_gsea_plot, echo=FALSE, fig.height=10, fig.width=15}
+
+p
+```
+
+## #3 - Is there any module of genes?
+
+(AKA Co-expression network analysis. Though we don't seem to have enough samples for this task.)
+
+*This part follows the [tutorial](https://smorabit.github.io/hdWGCNA/articles/basic_tutorial.html) on hdWGCNA package website.*
+
+### Set up Seurat object for WGCNA
+
+```{r setup_for_WGCNA, echo=TRUE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(hdWGCNA)
+library(WGCNA)
+
+merged_data <- SetupForWGCNA(
+  merged_data,
+  
+  # use genes that are expressed in 5% of cells in each 'group.by':
+  gene_select = "fraction", fraction = 0.05,
+  
+  wgcna_name = "macrophage" # name hdWGCNA experiment
+                            # one Seurat object can hold multiple hdWGCNA experiments
+)
+```
+
+### Construct metacells
+
+```{r metacells, echo=TRUE}
+
+# metacell = aggregate of similar single cells ==> reduce data sparsity
+# Here, we construct metacells by group cells of same celltype in same condition
+merged_data <- MetacellsByGroups(
+  seurat_obj = merged_data,
+  group.by = c("celltype", "condition"),
+  reduction = "RNA_pca",
+  k = 10, # nearest-neighbors; choose higher k for larger datasets
+  max_shared = 5, # max number of shared cells between two metacells
+  ident.group = 'celltype' # set the Idents of the metacell Seurat object
+)
+```
+
+```{r echo=FALSE}
+
+# metacells info is stored in @misc :
+knitr::kable(merged_data@misc$macrophage$wgcna_params$metacell_stats, caption = "metacells info is stored in @misc") %>% 
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+### Extract Metacell object and process
+
+```{r extract_metacell_obj, fig.show='hold', echo=TRUE, fig.height=4, fig.width=12}
+
+# Extract Metacell object ---- 
+DIA_metacell <- GetMetacellObject(merged_data)
+
+# Process Metacell object (Seurat workflow) ----
+DIA_metacell <- DIA_metacell %>%
+        NormalizeData(normalization.method = "LogNormalize", 
+                      scale.factor = 10000, verbose = FALSE) %>%
+        FindVariableFeatures(selection.method = "vst", 
+                             nfeatures = 3000, verbose = FALSE) %>%
+        ScaleData(verbose = FALSE) %>%
+        RunPCA(verbose = FALSE, reduction.name = "RNA_pca", npcs = 50) %>%
+        FindNeighbors(reduction = "RNA_pca", dims = 1:10,
+                      graph.name = "RNA_snn", verbose = FALSE) %>%
+        FindClusters(resolution = 0.5, graph.name = "RNA_snn", verbose = FALSE) %>%
+        RunUMAP(reduction = "RNA_pca", dims = 1:10, 
+                reduction.name = "RNA_umap", verbose = FALSE)
+
+# Plot ----
+p1 <- DimPlot(merged_data, reduction = "RNA_umap", label = TRUE) + 
+        NoLegend() + ggtitle("Single cells")
+
+p2 <- DimPlot(DIA_metacell, group.by = "celltype", 
+              reduction = "RNA_umap", label = TRUE) + 
+        NoLegend() + ggtitle("Meta cells")
+
+p3 <- DimPlot(DIA_metacell, group.by = "condition", 
+              reduction = "RNA_umap", repel = TRUE) + ggtitle("Meta cells")
+
+(p1 | p2 | p3)
+```
+
+[Note:]{.underline} When we use `MetacellsByGroup`, `min_cells = 100` by default, so celltype-condition groups that contain less than 100 cells are excluded (for example, no Neural cells were retained in the Metacell object).
+
+### Set up expression matrix for co-expression network analysis
+
+```{r set_expr_matrix, echo=TRUE}
+
+merged_data <- SetDatExpr(
+  merged_data,
+  group_name = "Macrophage",  # the group of interest
+  group.by = "celltype",
+  assay = "RNA",
+  layer = "data",             # use normalized data
+  use_metacells = FALSE       # not enough cells to use (?!)
+)
+```
+
+### Soft-power threshold
+
+This is important to keep the strong and remove the weak connections (assumed to be noise).
+
+```{r soft_power, echo=TRUE, fig.height=8, fig.width=8, message=FALSE, warning=FALSE}
+
+# Test different soft powers ----
+merged_data <- TestSoftPowers(
+  merged_data,
+  networkType = 'signed',
+  wgcna_name = "macrophage"
+)
+
+# Plot the results ----
+plot_list <- PlotSoftPowers(merged_data)
+wrap_plots(plot_list, ncol=2)
+```
+
+### Construct co-expression network
+
+```{r co-expr_network, echo=TRUE, message=FALSE, warning=FALSE}
+
+# Construct co-expression network ----
+merged_data <- ConstructNetwork(
+  merged_data, 
+  soft_power=11, # pick the lowest soft power that has scale-free topology
+  tom_name = 'Macrophage', # a Topoligical Overlap Matrix named 'Macrophage_TOM.rda' will be written in TOM ouput dir
+  overwrite_tom = TRUE
+)
+```
+
+```{r plot_dendrogram, echo=TRUE, fig.height=6, fig.width=8}
+
+PlotDendrogram(merged_data, main='Macrophage hdWGCNA Dendrogram')
+```
+
+### Get module assignment table
+
+```{r module_assign_table, echo=TRUE}
+
+# Get the module assignment table ----
+modules <- GetModules(merged_data) %>% subset(module != 'grey') # ignore the grey module
+
+# How many genes are there in each module ?
+table(modules$module)
+```
+
+*For demonstration, let's choose two genes, Col1a1 and Thbs4, and see how their expression correlated across cell types.* For this purpose, we may adopt some functions from this [blog](https://divingintogeneticsandgenomics.com/post/how-to-do-gene-correlation-for-single-cell-rnaseq-data-part-2-using-meta-cell/).
+
+<details>
+
+<summary>**Functions to use**</summary>
+
+```{r functions}
+
+matrix_to_expression_df <- function(x, obj){
+        df<- x %>%
+                as.matrix() %>% 
+                as.data.frame() %>%
+                tibble::rownames_to_column(var= "gene") %>%
+                tidyr::pivot_longer(cols = -1, names_to = "cell", values_to = "expression") %>%
+                tidyr::pivot_wider(names_from = "gene", values_from = expression) %>%
+                left_join(obj@meta.data %>% 
+                                  tibble::rownames_to_column(var = "cell"))
+        return(df)
+}
+
+
+get_expression_data<- function(obj, assay = "RNA", slot = "data", 
+                               genes = NULL, cells = NULL){
+        if (is.null(genes) & !is.null(cells)){
+                df<- GetAssayData(obj, assay = assay, slot = slot)[, cells, drop = FALSE] %>%
+                        matrix_to_expression_df(obj = obj)
+        } else if (!is.null(genes) & is.null(cells)){
+                df <- GetAssayData(obj, assay = assay, slot = slot)[genes, , drop = FALSE] %>%
+                        matrix_to_expression_df(obj = obj)
+        } else if (is.null(genes & is.null(cells))){
+                df <- GetAssayData(obj, assay = assay, slot = slot)[, , drop = FALSE] %>%
+                        matrix_to_expression_df(obj = obj)
+        } else {
+                df<- GetAssayData(obj, assay = assay, slot = slot)[genes, cells, drop = FALSE] %>%
+                        matrix_to_expression_df(obj = obj)
+        }
+        return(df)
+}
+```
+
+</details>
+
+```{r correlation_plot, echo=TRUE, fig.height=8, fig.width=8}
+
+# Select pair of genes
+genes <- c("Col1a1", "Thbs4")
+
+# Get normalized expression of selected genes from the matrix
+expression_data <- get_expression_data(merged_data, genes = genes)
+
+# Pearson correlation using single cells ----
+ggplot(expression_data, aes(x = Col1a1, y = Thbs4)) + 
+        geom_smooth(method="lm") +
+        geom_point(size = 0.8) +
+        facet_wrap(~celltype) +
+        ggpubr::stat_cor(method = "pearson")
+```
+
+```{r corr_plot_metacells, echo=TRUE, fig.height=8, fig.width=8}
+
+# Pearson correlation using meta cells ----
+expr_data_metacells <- get_expression_data(DIA_metacell, genes = genes)
+ggplot(expr_data_metacells, aes(x = Col1a1, y = Thbs4)) + 
+        geom_smooth(method="lm") +
+        geom_point(size = 0.8) +
+        facet_wrap(~celltype) +
+        ggpubr::stat_cor(method = "pearson")
+```
+
+## #4 - Which genes are correlated to Comp?
+
+*Using Pearson correlation only and not based on a weighted network*
+
+<details>
+
+<summary>**How to use `cor.test` function**</summary>
+
+```{r cor.test, fig.height=5, fig.width=5, message=FALSE, warning=FALSE}
+ 
+# Select gene of interest
+target <- merged_data@assays$RNA$data["Comp",]
+
+# Compute correlation with all other genes
+cor_results <- apply(merged_data@assays$RNA$data, 1, function(g) cor.test(target, g, method = "pearson"))
+  
+  # extract correlation estimate and p.value
+  cor_df <- data.frame(
+    gene = rownames(merged_data@assays$RNA$data),
+    cor  = sapply(cor_results, function(x) x$estimate),
+    pval = sapply(cor_results, function(x) x$p.value)
+)
+
+# Adjust p-values
+cor_df$adj_pval <- p.adjust(cor_df$pval, method = "BH")
+
+# Sort by strongest correlation
+cor_df <- cor_df[order(-abs(cor_df$cor)), ]
+head(cor_df)
+
+cor_df$group <- "ns"  # not significant
+cor_df$group[cor_df$cor > 0.3 & cor_df$adj_pval < 0.05] <- "positive"
+cor_df$group[cor_df$cor < -0.3 & cor_df$adj_pval < 0.05] <- "negative"
+
+p <- ggplot(cor_df, aes(x = cor, y = -log10(adj_pval), color = group)) +
+  geom_point(alpha = 0.7) +
+  scale_color_manual(values = c("negative" = "blue", "positive" = "red", "ns" = "gray80")) +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = "Pearson correlation (r)",
+    y = expression(-log[10]("adjusted p-value")),
+    title = paste("Correlation volcano")
+  ) +
+  geom_vline(xintercept = c(-0.3, 0.3), linetype = "dashed", color = "black") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black")
+
+top_labeled <- cor_df |> 
+  dplyr::filter(adj_pval < 0.05) |> 
+  dplyr::arrange(desc(abs(cor))) |> 
+  head(10)
+```
+
+</details>
+
+```{r cor.test_volcano_plot, echo=FALSE, fig.height=5, fig.width=5}
+
+p + geom_text_repel(data = top_labeled, aes(label = gene), size = 3, max.overlaps = 10)
+```
+
+# Codes are learned from...
+
+-   [Seurat - Guided Clustering Tutorial](https://satijalab.org/seurat/articles/pbmc3k_tutorial)
+
+-   [hdWGCNA in single-cell data](https://smorabit.github.io/hdWGCNA/articles/basic_tutorial.html)
+
+-   Chatomics, a bioinformatics blog by Ming Tommy Tang (check his [post](https://divingintogeneticsandgenomics.com/post/how-to-do-gene-correlation-for-single-cell-rnaseq-data-part-2-using-meta-cell/) on how to do gene correlation using metacell)
+
+-   ChatGPT (of course)
+
+# References

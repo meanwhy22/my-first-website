@@ -18,4 +18,11 @@ output:
 
 ------------------------------------------------------------------------
 
-### Project #2: Single-cell RNA-seq of healthy, mdx, and mdx/D2 mouse muscle
+### Practice #2: Single-cell RNA-seq of healthy, mdx, and mdx/D2 mouse muscle
+
+------------------------------------------------------------------------
+
+### Practice #3: Single-cell RNA-seq of DMD rat model
+
+🔗 [Link to paper](https://doi.org/10.1186/s40478-022-01355-2)\
+🌼 [Link to session](DMD_rat_scRNA.html)

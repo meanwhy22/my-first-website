@@ -1,0 +1,189 @@
+/* --- General layout --- */
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #333;
+  max-width: 900px;
+  margin: 2em auto;
+  line-height: 1.6;
+  background-color: #fafafa;
+  padding: 0 1em; /* extra horizontal padding for small screens */
+}
+
+/* --- Headings --- */
+h1, h2, h3 {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+h1 {
+  font-size: 2.2em;
+  border-bottom: 3px solid #3498db;
+  padding-bottom: 0.3em;
+  margin-top: 1em;
+  margin-bottom: 0.6em;
+}
+
+h2 {
+  font-size: 1.5em;
+  color: #2980b9;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 0.2em;
+  margin-top: 2em;   /* space above section */
+  margin-bottom: 1em; /* space below section title */
+}
+
+h3 {
+  font-size: 1.3em;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+/* --- Links --- */
+a {
+  color: #2980b9;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* --- Tables --- */
+table {
+  border-collapse: collapse;
+  margin-top: 0.8em;
+  font-size: 0.95em;
+  width: auto;          /* columns auto-size to content */
+  max-width: 100%;      /* prevent overflow */
+  table-layout: auto;   /* ensure auto-fit of columns */
+}
+
+th, td {
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+  font-weight: 600;
+}
+
+tr:nth-child(even) {
+  background-color: #fcfcfc; /* subtle striped effect */
+}
+
+/* --- Lists --- */
+ul {
+  list-style: disc;  /* standard bullet */
+  padding-left: 1.5em;  /* indent to show bullets properly */
+}
+
+ul li {
+  margin-bottom: 6px;
+  font-size: 1.05em;
+}
+
+/* --- Contact section --- */
+ul.contact-info {
+  list-style: none;   /* remove bullets */
+  padding-left: 0;
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}
+
+ul.contact-info li {
+  margin-bottom: 6px;
+  font-size: 1.05em;
+}
+
+ul.contact-info i {
+  color: #2c3e50;       /* bright icon color */
+  margin-right: 8px;    /* spacing before text */
+}
+
+/* --- Horizontal rule --- */
+hr {
+  border: none;
+  border-top: 1px solid #ccc;
+  margin: 2em 0;
+}
+
+i {
+  color: #2c3e50;   /* icon color */
+  margin-right: 6px; /* spacing before text */
+}
+
+/* --- Figures --- */
+.figure-caption {
+  font-style: italic;      /* keeps it italic */
+  color: #777;          /* your chosen color */
+  font-size: 0.85em;       /* slightly smaller */
+  display: block;          /* make it appear below image */
+  margin-top: 4px;         /* spacing above caption */
+  text-align: center;      /* optional: center under image */
+}
+
+/* --- Timeline --- */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  margin-top: 0.5em;
+}
+
+.timeline-item {
+  display: flex;
+  flex-direction: row;
+  gap: 1em;
+  align-items: flex-start;
+}
+
+.timeline-year {
+  width: 80px;             /* fixed width for year column */
+  font-weight: 600;
+  color: #2980b9;
+  flex-shrink: 0;          /* prevent shrinking on small screens */
+}
+
+.timeline-degree {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.timeline-grade {
+  font-weight: normal;    /* not bold */
+  font-size: 0.95em;     /* slightly smaller than degree */
+  color: #555;
+  margin-top: 2px;
+}
+
+.timeline-institution {
+  margin-left: 0.5em;      /* indent below degree */
+  color: #555;
+}
+
+/* --- Section spacing --- */
+section {
+  margin-bottom: 2em; /* spacing after each section */
+}
+
+/* --- Lists spacing --- */
+ul, ol {
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+
+/* Make all tables scrollable when too wide */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure kableExtra tables and knitr tables respect scrolling */
+table {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}

@@ -1,0 +1,161 @@
+/* =========================================================
+   Global Typography & Color Palette
+   ========================================================= */
+:root {
+  --black: #111111;       /* darkest tone - main title */
+  --charcoal: #2c3e50;    /* dark grey-blue - section headings */
+  --slate: #555555;       /* body text - comfortable contrast */
+  --cool-grey: #777777;   /* captions, secondary info */
+  --light-grey: #cccccc;  /* borders, subtle separators */
+  --bg-light: #f5f5f5;    /* soft background tone */
+}
+
+/* --- Body text --- */
+body {
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  color: var(--slate);
+  line-height: 1.6;
+  background-color: var(--bg-light);
+  margin: 2em auto;
+  max-width: 1200px;
+  padding: 0 1em;
+}
+
+/* =========================================================
+   Titles & Headings
+   ========================================================= */
+h1 {
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  color: var(--black);          /* main title - darkest */
+  font-weight: 700;
+  margin-bottom: 0.6em;
+}
+
+h2, h3, h4 {
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  color: var(--charcoal);       /* section headings */
+  font-weight: 600;
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+
+/* =========================================================
+   Contact Section
+   ========================================================= */
+ul.contact-info {
+  list-style: none;             /* remove bullets */
+  padding-left: 0;              /* align with container edge */
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}
+
+ul.contact-info li {
+  margin-bottom: 6px;           /* space between lines */
+  font-size: 1.05em;            /* slightly larger for readability */
+}
+
+ul.contact-info i {
+  color: var(--charcoal);       /* icon color */
+  margin-right: 8px;            /* spacing before text */
+  width: 1.2em;                 /* consistent icon width */
+  text-align: center;
+}
+
+/* =========================================================
+   Figures
+   ========================================================= */
+.figure-caption {
+  color: var(--cool-grey);      /* lighter grey for less emphasis */
+  display: block;               /* force to new line */
+  margin-top: 4px;              /* spacing above caption */
+  text-align: center;           /* centered under image */
+  font-size: 0.9em;
+}
+
+/* =========================================================
+   Timeline
+   ========================================================= */
+.timeline {
+  display: flex;
+  flex-direction: column;       /* vertical stack */
+  gap: 1em;                     /* space between items */
+  margin-top: 0.5em;
+}
+
+.timeline-item {
+  display: flex;
+  flex-direction: row;          /* year + details side by side */
+  gap: 1em;
+  align-items: flex-start;
+}
+
+.timeline-year {
+  width: 80px;                  /* fixed width for alignment */
+  color: #2980b9;               /* blue accent for years */
+  flex-shrink: 0;               /* prevent shrinking */
+  font-weight: 600;
+}
+
+.timeline-degree {
+  font-weight: 600;             /* emphasize degree/title */
+  color: var(--charcoal);       /* dark section color */
+}
+
+.timeline-grade {
+  font-weight: 400;             /* regular weight */
+  font-size: 0.95em;            /* slightly smaller than degree */
+  color: var(--cool-grey);      /* light grey for secondary info */
+  margin-top: 2px;
+}
+
+.timeline-institution {
+  margin-left: 0.5em;           /* indent for hierarchy */
+  color: var(--slate);          /* same as body text */
+  font-weight: 400;
+}
+
+/* =========================================================
+   Tables
+   ========================================================= */
+table {
+  border-collapse: collapse;    /* merge borders */
+  margin-top: 0.8em;
+  font-size: 0.95em;
+  width: auto;
+  max-width: 100%;
+  table-layout: auto;
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+}
+
+/* Header & cell styling */
+th, td {
+  padding: 8px 10px;            /* internal spacing */
+  border-bottom: 1px solid var(--light-grey);
+  text-align: left;
+}
+
+/* Header row */
+th {
+  background-color: #f5f5f5;    /* light neutral background */
+  font-weight: 600;
+  color: var(--charcoal);
+}
+
+/* Alternate row shading */
+tr:nth-child(even) {
+  background-color: #fafafa;    /* subtle stripe */
+}
+
+/* Hover effect */
+tr:hover {
+  background-color: #f0f0f0;    /* highlight on hover */
+}
+
+/* =========================================================
+   Horizontal Rule
+   ========================================================= */
+hr {
+  border: none;
+  border-top: 1px solid var(--light-grey);
+  margin: 2em 0;
+}

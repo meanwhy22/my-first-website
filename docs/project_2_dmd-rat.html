@@ -1,0 +1,2882 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Single-cell RNA-seq analysis of DMD rat model</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="site_libs/lightable-0.0.1/lightable.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+<style type="text/css">
+/* for pandoc --citeproc since 2.11 */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+<link rel="stylesheet" href="assets/style.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-inverse  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Minh's Notebook</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Resume
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="aboutme.html">About Minh</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Projects
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="projects.html">My practice sessions</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="contact.html">Contact</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://meanwhy22.github.io/my-first-website/">
+    <span class="fa fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Single-cell RNA-seq analysis of DMD rat
+model</h1>
+
+</div>
+
+
+<blockquote>
+<p><strong>Date:</strong> 18/10/2025</p>
+<p><strong>Description:</strong> <a
+href="https://doi.org/10.1186/s40478-022-01355-2">Taglietti et
+al. (2022)</a> created a rat model for DMD by CRISPR KO of exon 52 of
+dystrophin-encoding gene in the animal zygotes. Following functional
+assessment, they performed the single-cell RNA-seq of diaphragms of
+healthy (<strong>WT</strong>) and <strong>R-DMDdel52</strong>
+12-month-old rats. In this practice session, we’ll start from the count
+matrix deposited in NCBI Gene Expression Omnibus database under
+accession GSE198237.</p>
+</blockquote>
+<pre class="r"><code># Libraries ----
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(stringr)
+library(Seurat)
+library(Matrix)
+library(harmony)
+library(clusterProfiler)
+library(org.Rn.eg.db)
+library(msigdbr)
+
+# For plotting ----
+library(circlize)
+library(patchwork)
+library(ggplot2)
+library(ggrepel)
+library(viridis)
+library(scCustomize)
+library(ComplexHeatmap)
+library(enrichplot)</code></pre>
+<div id="data-preprocessing" class="section level1">
+<h1>Data preprocessing</h1>
+<div id="load-10x-count-matrix" class="section level2">
+<h2>Load 10X count matrix</h2>
+<details>
+<summary>
+<strong>Create Seurat objects</strong>
+</summary>
+<pre class="r"><code># To create Seurat object for each sample ----
+
+# list all folders (1 folder = 1 muscle sample)
+samples &lt;- list.dirs(c(&quot;~/project_2_dmd-rat/DIA_WT_12months&quot;, &quot;~/project_2_dmd-rat/DIA_DMD_12months&quot;))
+
+# loop through and read each dataset
+for (folder in samples) {
+  foldername &lt;- basename(folder)            # get just the folder name
+  data &lt;- Read10X(data.dir = folder)        # read 10X data
+  assign(paste0(foldername, &quot;.data&quot;), data) # create object [name].data
+  
+  # create Seurat object
+  seu &lt;- CreateSeuratObject(
+    counts = data,
+    project = foldername,
+    min.features = 200,   # include only cells where &gt;=200 features detected
+    min.cells = 3         # include only features that are detected in &gt;=3 cells
+  )
+  
+  assign(foldername, seu) # put the object back into environment
+}</code></pre>
+</details>
+<pre class="r"><code>DIA_WT_12months</code></pre>
+<pre><code>## An object of class Seurat 
+## 14876 features across 3409 samples within 1 assay 
+## Active assay: RNA (14876 features, 0 variable features)
+##  1 layer present: counts</code></pre>
+<pre class="r"><code>DIA_DMD_12months</code></pre>
+<pre><code>## An object of class Seurat 
+## 15837 features across 4720 samples within 1 assay 
+## Active assay: RNA (15837 features, 0 variable features)
+##  1 layer present: counts</code></pre>
+</div>
+<div id="quality-control" class="section level2">
+<h2>Quality control</h2>
+<div id="mitochondrial-transcripts" class="section level3">
+<h3>%Mitochondrial transcripts</h3>
+<details>
+<summary>
+<strong>Compute percent.mt</strong>
+</summary>
+<pre class="r"><code>samples &lt;- c(&quot;DIA_WT_12months&quot;, &quot;DIA_DMD_12months&quot;)
+
+# loop %mt calculation ----
+for (obj_name in samples) {
+  seu &lt;- get(obj_name)
+  seu[[&quot;percent.mt&quot;]] &lt;- PercentageFeatureSet(seu, pattern = &quot;^Mt[-\\.]&quot;)
+  assign(obj_name, seu)
+}</code></pre>
+</details>
+<table class="table table-striped table-hover table-condensed table-responsive" style="margin-left: auto; margin-right: auto;">
+<caption>
+‘percent.mt’ is added to metadata table
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:left;">
+orig.ident
+</th>
+<th style="text-align:right;">
+nCount_RNA
+</th>
+<th style="text-align:right;">
+nFeature_RNA
+</th>
+<th style="text-align:right;">
+percent.mt
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+AAACCCAAGCACCGTC-1
+</td>
+<td style="text-align:left;">
+DIA_WT_12months
+</td>
+<td style="text-align:right;">
+18084
+</td>
+<td style="text-align:right;">
+232
+</td>
+<td style="text-align:right;">
+0.7520460
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+AAACCCAAGTGCACAG-1
+</td>
+<td style="text-align:left;">
+DIA_WT_12months
+</td>
+<td style="text-align:right;">
+346
+</td>
+<td style="text-align:right;">
+257
+</td>
+<td style="text-align:right;">
+0.5780347
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+AAACCCACAATAAGGT-1
+</td>
+<td style="text-align:left;">
+DIA_WT_12months
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+1015
+</td>
+<td style="text-align:right;">
+7.3267327
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+AAACCCAGTCTACGTA-1
+</td>
+<td style="text-align:left;">
+DIA_WT_12months
+</td>
+<td style="text-align:right;">
+1743
+</td>
+<td style="text-align:right;">
+876
+</td>
+<td style="text-align:right;">
+13.4251291
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+AAACCCAGTTTACGAC-1
+</td>
+<td style="text-align:left;">
+DIA_WT_12months
+</td>
+<td style="text-align:right;">
+5611
+</td>
+<td style="text-align:right;">
+1992
+</td>
+<td style="text-align:right;">
+9.1427553
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+AAACCCATCCATCACC-1
+</td>
+<td style="text-align:left;">
+DIA_WT_12months
+</td>
+<td style="text-align:right;">
+699
+</td>
+<td style="text-align:right;">
+439
+</td>
+<td style="text-align:right;">
+10.8726753
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="qc-metrics" class="section level3">
+<h3>QC metrics</h3>
+<details>
+<summary>
+<strong>QC plots before filtering</strong>
+</summary>
+<pre class="r"><code># WT
+
+  ## individual plots
+  p1 &lt;- VlnPlot(DIA_WT_12months, features = c(&quot;nFeature_RNA&quot;, &quot;nCount_RNA&quot;, &quot;percent.mt&quot;),
+                ncol = 3, pt.size = 1)
+  p2 &lt;- FeatureScatter(DIA_WT_12months, feature1 = &quot;nCount_RNA&quot;, feature2 = &quot;percent.mt&quot;)
+  p3 &lt;- FeatureScatter(DIA_WT_12months, feature1 = &quot;nCount_RNA&quot;, feature2 = &quot;nFeature_RNA&quot;)
+  
+  ## combine plots
+  p1 / (p2 | p3)</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/QC_plots-1.png" width="1152" /></p>
+<pre class="r"><code># DMD
+
+  ## individual plots
+  p1 &lt;- VlnPlot(DIA_DMD_12months, features = c(&quot;nFeature_RNA&quot;, &quot;nCount_RNA&quot;, &quot;percent.mt&quot;),
+                ncol = 3, pt.size = 1)
+  p2 &lt;- FeatureScatter(DIA_DMD_12months, feature1 = &quot;nCount_RNA&quot;, feature2 = &quot;percent.mt&quot;)
+  p3 &lt;- FeatureScatter(DIA_DMD_12months, feature1 = &quot;nCount_RNA&quot;, feature2 = &quot;nFeature_RNA&quot;)
+  
+  ## combine plots
+  p1 / (p2 | p3)</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/QC_plots-2.png" width="1152" /></p>
+</details>
+</div>
+<div id="filtering-poor-quality-cells" class="section level3">
+<h3>Filtering poor-quality cells</h3>
+<pre class="r"><code># Filtering ----
+DIA_WT_subset &lt;- subset(DIA_WT_12months, subset = nFeature_RNA &gt; 300 &amp; nFeature_RNA &lt; 4000 &amp; nCount_RNA &lt; 15000 &amp; percent.mt &lt; 25)</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/WT_QC_plots_filtered-1.png" width="1152" /></p>
+<pre class="r"><code># Filtering ----
+DIA_DMD_subset &lt;- subset(DIA_DMD_12months, subset = nFeature_RNA &gt; 300 &amp; nFeature_RNA &lt; 4000 &amp; nCount_RNA &gt; 200 &amp; nCount_RNA &lt; 15000 &amp; percent.mt &lt; 25)</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/DMD_QC_plots_filtered-1.png" width="1152" /></p>
+</div>
+</div>
+<div id="merge-samples" class="section level2">
+<h2>Merge samples</h2>
+<details>
+<summary>
+<strong>Merge Seurat objects</strong>
+</summary>
+<pre class="r"><code># Merge 2 Seurat objects ----
+merged_data &lt;- merge(
+  DIA_WT_subset,
+  y = DIA_DMD_subset,
+  add.cell.ids = c(&quot;WT&quot;, &quot;DMD&quot;), # optional
+  project = &quot;DMD_rat_scRNA&quot;
+) %&gt;% JoinLayers()
+
+# Add &#39;condition&#39; metadata
+merged_data@meta.data &lt;- merged_data@meta.data %&gt;%
+  mutate(condition = case_when(
+    orig.ident == &quot;DIA_WT_12months&quot; ~ &quot;WT&quot;,
+    orig.ident == &quot;DIA_DMD_12months&quot; ~ &quot;DMD&quot;
+  ))
+# Reorder the &#39;condition&#39; levels
+merged_data$condition &lt;- factor(merged_data$condition, levels = c(&quot;WT&quot;, &quot;DMD&quot;))
+
+# Plot
+  p1 &lt;- VlnPlot(merged_data, group.by = &quot;condition&quot;,
+        features = c(&quot;nFeature_RNA&quot;, &quot;nCount_RNA&quot;, &quot;percent.mt&quot;),
+        ncol = 3, pt.size = 0.5)
+  p2 &lt;- FeatureScatter(merged_data, group.by = &quot;condition&quot;,
+                       feature1 = &quot;nCount_RNA&quot;, feature2 = &quot;percent.mt&quot;)
+  p3 &lt;- FeatureScatter(merged_data, group.by = &quot;condition&quot;,
+                       feature1 = &quot;nCount_RNA&quot;, feature2 = &quot;nFeature_RNA&quot;)</code></pre>
+</details>
+<pre><code>## An object of class Seurat 
+## 16175 features across 6499 samples within 1 assay 
+## Active assay: RNA (16175 features, 0 variable features)
+##  1 layer present: counts</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/merged_data-1.png" width="960" /></p>
+</div>
+</div>
+<div id="standard-seurat-workflow" class="section level1">
+<h1>Standard Seurat workflow</h1>
+<pre class="r"><code>merged_data &lt;- NormalizeData(merged_data,
+                             assay = &#39;RNA&#39;,
+                             verbose = FALSE) %&gt;% 
+  FindVariableFeatures(selection.method = &#39;vst&#39;,
+                       nfeatures = 3000,
+                       verbose = FALSE) %&gt;%
+  ScaleData(assay = &#39;RNA&#39;,
+            # vars.to.regress = c(&quot;percent.mt&quot;),
+            verbose = FALSE) %&gt;%
+  RunPCA(assay = &#39;RNA&#39;,
+         reduction.name = &quot;RNA_pca&quot;,
+         npcs = 50,
+         verbose = FALSE)</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/elbow_plot_pca-1.png" width="384" /></p>
+<details>
+<summary>
+<strong>How much variance do 10 first PCs account for?</strong>
+</summary>
+<pre class="r"><code># How much variance do 10 first PCs account for ? ----
+stdev &lt;- merged_data@reductions$RNA_pca@stdev
+var_explained &lt;- (stdev^2) / sum(stdev^2)
+cumsum(var_explained)[10]</code></pre>
+<pre><code>## [1] 0.7078972</code></pre>
+</details>
+<div id="clustering" class="section level2">
+<h2>Clustering</h2>
+<div id="umap" class="section level3">
+<h3>UMAP</h3>
+<pre class="r"><code>merged_data &lt;- RunUMAP(merged_data,
+                       reduction = &quot;RNA_pca&quot;,
+                       reduction.name = &quot;RNA_umap&quot;,
+                       dims = 1:10, verbose = FALSE) %&gt;% 
+  FindNeighbors(reduction = &#39;RNA_pca&#39;, 
+                graph.name = &#39;RNA_snn&#39;,
+                dims = 1:10, verbose = FALSE) %&gt;% 
+  FindClusters(resolution = 0.2, graph.name = &#39;RNA_snn&#39;)</code></pre>
+<pre><code>## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+## 
+## Number of nodes: 6499
+## Number of edges: 61305
+## 
+## Running Louvain algorithm...
+## Maximum modularity in 10 random starts: 0.9486
+## Number of communities: 11
+## Elapsed time: 0 seconds</code></pre>
+<pre class="r"><code># following FindClusters a metadata called &#39;RNA_snn_res.0.2&#39; is created
+# the last clustering goes to &#39;seurat_clusters&#39; metadata
+
+# visualize the clusters ----
+p1 &lt;- DimPlot(merged_data, reduction = &quot;RNA_umap&quot;,
+              group.by=&quot;condition&quot;)
+p2 &lt;- DimPlot(merged_data, reduction = &quot;RNA_umap&quot;,
+              group.by=&quot;seurat_clusters&quot;)
+p1 + p2</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/umap_clustering-1.png" width="960" /></p>
+</div>
+<div id="tsne" class="section level3">
+<h3>tSNE</h3>
+<pre class="r"><code>merged_data &lt;- RunTSNE(merged_data,
+                       reduction = &quot;RNA_pca&quot;,
+                       reduction.name = &quot;RNA_tsne&quot;,
+                       dims = 1:10)
+
+# visualize the clusters ----
+p1 &lt;- DimPlot(merged_data, reduction = &quot;RNA_tsne&quot;,
+              group.by=&quot;condition&quot;)
+p2 &lt;- DimPlot(merged_data, reduction = &quot;RNA_tsne&quot;,
+              group.by=&quot;seurat_clusters&quot;)
+p1 + p2</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/tSNE_plot-1.png" width="960" /></p>
+</div>
+</div>
+<div id="identify-cell-populations" class="section level2">
+<h2>Identify cell populations</h2>
+<div id="find-markers" class="section level3">
+<h3>Find markers</h3>
+<details>
+<summary>
+<strong><code>FindAllMarkers</code></strong>
+</summary>
+<pre class="r"><code># DE analysis between cells of one cluster versus cells in ALL other clusters ----
+
+## find markers (by default, p is adjusted by Bonferroni correction)
+cluster_markers &lt;- FindAllMarkers(
+  merged_data,
+  assay = &quot;RNA&quot;, 
+  group.by = &quot;RNA_snn_res.0.2&quot;,
+  only.pos = TRUE,       # Wilcoxon&#39;s rank sum test by default
+  return.thresh = 0.01,  # only return markers that have p-value &lt; 0.01
+  
+  min.pct = 0.25, # only test genes that are detected in a minimum percentage of 
+                  # 0.25 of cells in either of the 2 populations
+  
+  logfc.threshold = 0.6 # limit testing to gene which show at least 1.5-fold 
+                        # difference between two groups
+)
+
+## threshold to significant markers
+sig_markers &lt;- subset(cluster_markers, p_val_adj &lt; 0.01)
+
+## top marker genes in each cell cluster
+top_markers &lt;- sig_markers %&gt;% 
+  group_by(cluster) %&gt;% 
+  top_n(n=10, wt = avg_log2FC)</code></pre>
+</details>
+<table class="table table-striped table-hover table-condensed table-responsive" style="margin-left: auto; margin-right: auto;">
+<caption>
+Top marker genes in each cluster
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+p_val
+</th>
+<th style="text-align:right;">
+avg_log2FC
+</th>
+<th style="text-align:right;">
+pct.1
+</th>
+<th style="text-align:right;">
+pct.2
+</th>
+<th style="text-align:right;">
+p_val_adj
+</th>
+<th style="text-align:left;">
+cluster
+</th>
+<th style="text-align:left;">
+gene
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2.611615
+</td>
+<td style="text-align:right;">
+0.756
+</td>
+<td style="text-align:right;">
+0.109
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+Sox18
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2.217595
+</td>
+<td style="text-align:right;">
+0.728
+</td>
+<td style="text-align:right;">
+0.187
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+Rgs16
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2.963310
+</td>
+<td style="text-align:right;">
+0.443
+</td>
+<td style="text-align:right;">
+0.060
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+Rnd1
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2.564057
+</td>
+<td style="text-align:right;">
+0.432
+</td>
+<td style="text-align:right;">
+0.051
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+Fam110d
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2.321056
+</td>
+<td style="text-align:right;">
+0.372
+</td>
+<td style="text-align:right;">
+0.039
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+Lrrc3b
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2.745222
+</td>
+<td style="text-align:right;">
+0.428
+</td>
+<td style="text-align:right;">
+0.075
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+AABR07042514.3
+</td>
+</tr>
+</tbody>
+</table>
+<p><img src="project_2_dmd-rat_files/figure-html/do_heatmap_top_markers-1.png" width="960" /></p>
+</div>
+<div id="classical-markers" class="section level3">
+<h3>Classical markers</h3>
+<p><img src="project_2_dmd-rat_files/figure-html/classical_markers-1.png" width="960" /></p>
+<div class="line-block">Some clusters appear hard be identified by
+classical markers → check <strong>GO enrichment</strong> (below)</div>
+</div>
+<div id="annotate-cell-types" class="section level3">
+<h3>Annotate cell types</h3>
+<details>
+<summary>
+Assign new cell cluster identities
+</summary>
+<pre class="r"><code># assign cell ids ----
+new.cluster.ids &lt;- c(   
+  &quot;0&quot; = &quot;Endothelial&quot;,   
+  &quot;1&quot; = &quot;Endothelial&quot;,   
+  &quot;2&quot; = &quot;FAPs&quot;,   
+  &quot;3&quot; = &quot;Smooth muscle&quot;,
+  &quot;4&quot; = &quot;MuSCs&quot;,
+  &quot;5&quot; = &quot;Macrophage&quot;,   
+  &quot;6&quot; = &quot;Myocyte&quot;,   
+  &quot;7&quot; = &quot;T cell&quot;,   
+  &quot;8&quot; = &quot;B cell&quot;,   
+  &quot;9&quot; = &quot;Neural cells&quot;
+  )  
+
+# rename the clusters ----
+merged_data &lt;- RenameIdents(merged_data, new.cluster.ids) 
+merged_data$celltype &lt;- Idents(merged_data)
+
+  # at this point, we may want to save the integrated object:
+  # saveRDS(merged_data, file=&quot;merged_data.rds&quot;)</code></pre>
+</details>
+</div>
+<div id="go-enrichment-of-cluster-markers" class="section level3">
+<h3>GO enrichment of cluster markers</h3>
+<details>
+<summary>
+<strong>GO analysis &amp; visualization</strong>
+</summary>
+<pre class="r"><code>merged_data &lt;- readRDS(&quot;~/project_2_dmd-rat/merged_data.rds&quot;)
+
+# Rerun FindAllMarkers on saved Seurat object ----
+cluster_markers &lt;- FindAllMarkers(merged_data, assay = &quot;RNA&quot;, group.by = &quot;ident&quot;, only.pos = TRUE, return.thresh = 0.01, min.pct = 0.25, logfc.threshold = 0.6)
+
+## threshold to significant markers
+sig_markers &lt;- subset(cluster_markers, p_val_adj &lt; 0.01)
+
+# GO analysis on identified markers ----
+
+## Endothelial ##
+
+endo_markers &lt;- (sig_markers %&gt;% filter(cluster==&quot;Endothelial&quot;))$gene
+
+### convert gene symbols to Entrez IDs (for clusterProfiler)
+endo &lt;- bitr(endo_markers,
+                fromType = &quot;SYMBOL&quot;,
+                toType = &quot;ENTREZID&quot;,
+                OrgDb = org.Rn.eg.db)
+
+### run GO enrichment
+ego &lt;- enrichGO(gene          = endo$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = &quot;ENTREZID&quot;,
+                ont           = &quot;BP&quot;,      # biological process
+                pAdjustMethod = &quot;BH&quot;,
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+### Visualize ----
+df &lt;- as.data.frame(ego@result)
+  
+  # because GeneRatio is NOT yet numeric
+  df &lt;- df %&gt;%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts &lt;- strsplit(x, &quot;/&quot;)[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # top BP terms
+  top &lt;- df %&gt;%
+    arrange(desc(GeneRatioNum)) %&gt;%
+    slice_head(n = 5) %&gt;%
+    mutate(Description = recode(Description, &quot;regulation of angiogenesis&quot; = &quot;angiogenesis&quot;, 
+                                             &quot;regulation of vasculature development&quot; = &quot;vasculature development&quot;)) %&gt;% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+endo_GOBP &lt;- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = &quot;-log10(adj p)&quot;, option = &quot;C&quot;) +
+  labs(x = &quot;Gene Ratio&quot;, y = NULL, title = &quot;Endothelial&quot;) +
+  theme_classic()
+
+
+## FAPs ##
+
+FAPs_markers &lt;- (sig_markers %&gt;% filter(cluster==&quot;FAPs&quot;))$gene
+
+### gene symbols to Entrez IDs
+FAPs &lt;- bitr(FAPs_markers, fromType = &quot;SYMBOL&quot;, toType = &quot;ENTREZID&quot;, OrgDb = org.Rn.eg.db)
+
+### GO enrichment
+ego &lt;- enrichGO(gene          = FAPs$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = &quot;ENTREZID&quot;,
+                ont           = &quot;BP&quot;,
+                pAdjustMethod = &quot;BH&quot;,
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+### visualize ----
+df &lt;- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df &lt;- df %&gt;%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts &lt;- strsplit(x, &quot;/&quot;)[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top &lt;- df %&gt;%
+    filter(Description %in% c(
+    &quot;extracellular matrix organization&quot;,
+    &quot;connective tissue development&quot;,
+    &quot;transforming growth factor beta receptor superfamily signaling pathway&quot;,
+    &quot;wound healing&quot;
+  )) %&gt;%
+    arrange(desc(GeneRatioNum)) %&gt;%
+    mutate(Description = recode(Description, &quot;extracellular matrix organization&quot; = &quot;ECM organization&quot;, &quot;transforming growth factor beta receptor superfamily signaling pathway&quot; = &quot;TGFb signaling&quot;)) %&gt;% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+FAPs_GOBP &lt;- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = &quot;-log10(adj p)&quot;, option = &quot;C&quot;) +
+  labs(x = &quot;Gene Ratio&quot;, y = NULL, title = &quot;FAPs&quot;) +
+  theme_classic()
+
+
+## Smooth muscle cells ##
+
+SMC_markers &lt;- (sig_markers %&gt;% filter(cluster==&quot;Smooth muscle&quot;))$gene
+
+### gene symbols to Entrez IDs
+SMC &lt;- bitr(SMC_markers,
+                fromType = &quot;SYMBOL&quot;,
+                toType = &quot;ENTREZID&quot;,
+                OrgDb = org.Rn.eg.db)
+
+### GO enrichment
+ego &lt;- enrichGO(gene          = SMC$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = &quot;ENTREZID&quot;,
+                ont           = &quot;BP&quot;,      # biological process
+                pAdjustMethod = &quot;BH&quot;,
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+### visualize ----
+df &lt;- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df &lt;- df %&gt;%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts &lt;- strsplit(x, &quot;/&quot;)[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top &lt;- df %&gt;%
+    filter(Description %in% c(
+    &quot;regulation of monoatomic ion transport&quot;,
+    &quot;mesenchyme development&quot;,
+    &quot;muscle contraction&quot;,
+    &quot;actin filament organization&quot;,
+    &quot;Wnt signaling pathway&quot;,
+    &quot;negative regulation of cell adhesion&quot;
+  )) %&gt;%
+    arrange(desc(GeneRatioNum)) %&gt;%
+    mutate(Description = recode(Description, &quot;regulation of monoatomic ion transport&quot; = &quot;ion transport&quot;, &quot;negative regulation of cell adhesion&quot; = &quot;cell adhesion ↓&quot;)) %&gt;% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+SMC_GOBP &lt;- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = &quot;-log10(adj p)&quot;, option = &quot;C&quot;) +
+  labs(x = &quot;Gene Ratio&quot;, y = NULL, title = &quot;Smooth muscle cells&quot;) +
+  theme_classic()
+
+
+## Macrophage ##
+
+macro_markers &lt;- (sig_markers %&gt;% filter(cluster==&quot;Macrophage&quot;))$gene
+
+### gene symbols to Entrez IDs
+macro &lt;- bitr(macro_markers,
+                fromType = &quot;SYMBOL&quot;,
+                toType = &quot;ENTREZID&quot;,
+                OrgDb = org.Rn.eg.db)
+
+### GO enrichment
+ego &lt;- enrichGO(gene          = macro$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = &quot;ENTREZID&quot;,
+                ont           = &quot;BP&quot;,      # biological process
+                pAdjustMethod = &quot;BH&quot;,
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+### visualize ----
+df &lt;- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df &lt;- df %&gt;%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts &lt;- strsplit(x, &quot;/&quot;)[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top &lt;- df %&gt;%
+    filter(Description %in% c(
+    &quot;mononuclear cell proliferation&quot;,
+    &quot;myeloid cell differentiation&quot;,
+    &quot;chemotaxis&quot;
+  )) %&gt;%
+    arrange(desc(GeneRatioNum)) %&gt;%
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+macro_GOBP &lt;- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = &quot;-log10(adj p)&quot;, option = &quot;C&quot;) +
+  labs(x = &quot;Gene Ratio&quot;, y = NULL, title = &quot;Macrophages&quot;) +
+  theme_classic()
+
+
+## T cell ##
+
+T_cell_markers &lt;- (sig_markers %&gt;% filter(cluster==&quot;T cell&quot;))$gene
+
+### convert gene symbols to Entrez IDs (for clusterProfiler)
+T_cell &lt;- bitr(T_cell_markers,
+                fromType = &quot;SYMBOL&quot;,
+                toType = &quot;ENTREZID&quot;,
+                OrgDb = org.Rn.eg.db)
+
+### run GO enrichment
+ego &lt;- enrichGO(gene          = T_cell$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = &quot;ENTREZID&quot;,
+                ont           = &quot;BP&quot;,      # biological process
+                pAdjustMethod = &quot;BH&quot;,
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+### visualize ----
+df &lt;- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df &lt;- df %&gt;%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts &lt;- strsplit(x, &quot;/&quot;)[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top &lt;- df %&gt;% filter(Description %in% c(&quot;lymphocyte differentiation&quot;,
+                                          &quot;regulation of T cell activation&quot;,
+                                          &quot;response to virus&quot;)) %&gt;% 
+    arrange(desc(GeneRatioNum)) %&gt;% 
+    mutate(Description = recode(Description, &quot;regulation of T cell activation&quot; = &quot;T cell activation&quot;)) %&gt;% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+T_cell_GOBP &lt;- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = &quot;-log10(adj p)&quot;, option = &quot;C&quot;) +
+  labs(x = &quot;Gene Ratio&quot;, y = NULL, title = &quot;T cells&quot;) +
+  theme_classic()
+
+
+## B cell ##
+
+B_cell_markers &lt;- (sig_markers %&gt;% filter(cluster==&quot;B cell&quot;))$gene
+
+### convert gene symbols to Entrez IDs (for clusterProfiler)
+B_cell &lt;- bitr(B_cell_markers,
+                fromType = &quot;SYMBOL&quot;,
+                toType = &quot;ENTREZID&quot;,
+                OrgDb = org.Rn.eg.db)
+
+### run GO enrichment
+ego &lt;- enrichGO(gene          = B_cell$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = &quot;ENTREZID&quot;,
+                ont           = &quot;BP&quot;,      # biological process
+                pAdjustMethod = &quot;BH&quot;,
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+### visualize ----
+df &lt;- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df &lt;- df %&gt;%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts &lt;- strsplit(x, &quot;/&quot;)[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top &lt;- df %&gt;%
+    filter(Description %in% c(
+    &quot;B cell activation&quot;,
+    &quot;lymphocyte differentiation&quot;,
+    &quot;antigen receptor-mediated signaling pathway&quot;
+  )) %&gt;%
+    arrange(desc(GeneRatioNum)) %&gt;%
+    mutate(Description = recode(Description, &quot;antigen receptor-mediated signaling pathway&quot; = &quot;antigen receptor-mediated\nsignaling&quot;)) %&gt;% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+B_cell_GOBP &lt;- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = &quot;-log10(adj p)&quot;, option = &quot;C&quot;) +
+  labs(x = &quot;Gene Ratio&quot;, y = NULL, title = &quot;B cells&quot;) +
+  theme_classic()
+
+
+## Neural cell ##
+
+neuro_markers &lt;- (sig_markers %&gt;% filter(cluster==&quot;Neural cells&quot;))$gene
+
+### convert gene symbols to Entrez IDs (for clusterProfiler)
+neuro &lt;- bitr(neuro_markers,
+                fromType = &quot;SYMBOL&quot;,
+                toType = &quot;ENTREZID&quot;,
+                OrgDb = org.Rn.eg.db)
+
+### run GO enrichment
+ego &lt;- enrichGO(gene          = neuro$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = &quot;ENTREZID&quot;,
+                ont           = &quot;BP&quot;,      # biological process
+                pAdjustMethod = &quot;BH&quot;,
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+### visualize ----
+df &lt;- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df &lt;- df %&gt;%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts &lt;- strsplit(x, &quot;/&quot;)[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top &lt;- df %&gt;% 
+    arrange(desc(GeneRatioNum)) %&gt;% 
+    slice_head(n = 5) %&gt;% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+neuro_GOBP &lt;- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = &quot;-log10(adj p)&quot;, option = &quot;C&quot;) +
+  labs(x = &quot;Gene Ratio&quot;, y = NULL, title = &quot;Neural cells&quot;) +
+  theme_classic()
+
+
+# Combine GO enrichment plots ----
+layout &lt;- &quot;
+AB
+CD
+EF
+G-
+&quot;
+
+plots &lt;- list(
+  A = endo_GOBP,
+  B = FAPs_GOBP,
+  C = SMC_GOBP,
+  D = macro_GOBP,
+  E = T_cell_GOBP,
+  F = B_cell_GOBP,
+  G = neuro_GOBP
+)</code></pre>
+</details>
+<p><img src="project_2_dmd-rat_files/figure-html/go_plots_all_clusters-1.png" width="960" /></p>
+</div>
+<div id="cell-type-composition" class="section level3">
+<h3>Cell type composition</h3>
+<table class="table table-striped table-hover table-condensed table-responsive" style="margin-left: auto; margin-right: auto;">
+<caption>
+Number of each cell type in each condition
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+condition
+</th>
+<th style="text-align:right;">
+Endothelial
+</th>
+<th style="text-align:right;">
+FAPs
+</th>
+<th style="text-align:right;">
+Smooth muscle
+</th>
+<th style="text-align:right;">
+MuSCs
+</th>
+<th style="text-align:right;">
+Macrophage
+</th>
+<th style="text-align:right;">
+Myocyte
+</th>
+<th style="text-align:right;">
+T cell
+</th>
+<th style="text-align:right;">
+B cell
+</th>
+<th style="text-align:right;">
+Neural cells
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+WT
+</td>
+<td style="text-align:right;">
+1329
+</td>
+<td style="text-align:right;">
+139
+</td>
+<td style="text-align:right;">
+213
+</td>
+<td style="text-align:right;">
+240
+</td>
+<td style="text-align:right;">
+111
+</td>
+<td style="text-align:right;">
+58
+</td>
+<td style="text-align:right;">
+145
+</td>
+<td style="text-align:right;">
+106
+</td>
+<td style="text-align:right;">
+24
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+DMD
+</td>
+<td style="text-align:right;">
+1913
+</td>
+<td style="text-align:right;">
+1156
+</td>
+<td style="text-align:right;">
+473
+</td>
+<td style="text-align:right;">
+58
+</td>
+<td style="text-align:right;">
+186
+</td>
+<td style="text-align:right;">
+192
+</td>
+<td style="text-align:right;">
+82
+</td>
+<td style="text-align:right;">
+28
+</td>
+<td style="text-align:right;">
+46
+</td>
+</tr>
+</tbody>
+</table>
+<details>
+<summary>
+Plot the proportion of each cell type in each condition:
+</summary>
+<p><img src="project_2_dmd-rat_files/figure-html/cell_type_composition-1.png" width="960" /></p>
+</details>
+</div>
+</div>
+</div>
+<div id="questions" class="section level1">
+<h1>Questions</h1>
+<div
+id="how-many-genes-were-updown-regulated-in-dmd-versus-wt-rat-diaphragm"
+class="section level2">
+<h2>#1 - How many genes were up/down-regulated in DMD versus WT rat
+diaphragm?</h2>
+<details>
+<summary>
+<strong>Differential expression analysis between DMD and WT
+condition</strong>
+</summary>
+<pre class="r"><code># Test differential expression ----
+DMD_vs_WT &lt;- FindMarkers(
+  merged_data,
+  assay = &quot;RNA&quot;,
+  group.by = &quot;condition&quot;,
+  ident.1 = &quot;DMD&quot;,
+  ident.2 = &quot;WT&quot;,
+  only.pos = FALSE
+)
+DMD_vs_WT$gene &lt;- rownames(DMD_vs_WT)
+
+# Classify: up, down, or non-significant
+DMD_vs_WT$regulation &lt;- ifelse(
+  DMD_vs_WT$p_val_adj &lt; 0.01 &amp; 
+    DMD_vs_WT$avg_log2FC &gt; 1, &quot;Up&quot;,
+  ifelse( DMD_vs_WT$p_val_adj &lt; 0.01 &amp;
+            DMD_vs_WT$avg_log2FC &lt; -1, &quot;Down&quot;,
+          &quot;NotSig&quot;)
+)
+
+# Count up/down genes
+counts &lt;- DMD_vs_WT %&gt;%
+  filter(regulation %in% c(&quot;Up&quot;,&quot;Down&quot;)) %&gt;%
+  group_by(regulation) %&gt;%
+  summarise(n = n(), .groups = &quot;drop&quot;) %&gt;%
+  tidyr::pivot_wider(names_from = regulation, values_from = n, values_fill = 0)
+
+# Volcano plot
+p &lt;- ggplot(data = DMD_vs_WT,
+            aes(x = avg_log2FC,
+                y = -log10(p_val_adj))) +
+  geom_point(aes(col = regulation)) +
+  
+  # Add threshold lines
+  geom_hline(yintercept = -log10(0.01), 
+             col = &quot;black&quot;, 
+             linetype = &#39;dashed&#39;) +
+  
+  geom_vline(xintercept = c(-1, 1),
+           col = &quot;black&quot;,
+           linetype = &#39;dashed&#39;) +
+  
+  scale_color_manual(values = c(&quot;Down&quot;=&quot;#00AFBB&quot;,
+                                &quot;NotSig&quot;=&quot;grey&quot;,
+                                &quot;Up&quot;=&quot;#E41A1C&quot;),
+                     labels = c(&quot;Down&quot;=&quot;Downregulated&quot;, 
+                                &quot;NotSig&quot;=&quot;Not significant&quot;, 
+                                &quot;Up&quot;=&quot;Upregulated&quot;)) +
+  
+  labs(x = &quot;log2FC (average expression)&quot;,
+       y = &quot;-log10(p_val_adj)&quot;,
+       color = &quot;Regulation&quot;, 
+       title = &quot;DMD versus WT rat diaphragm&quot;) + 
+  theme_minimal() +
+  
+  # Annotate number of up/down genes on the plot 
+  annotate(&quot;text&quot;, x = max(DMD_vs_WT$avg_log2FC, na.rm=TRUE), 
+           y = max(-log10(DMD_vs_WT$p_val_adj), na.rm=TRUE), 
+           label = paste0(&quot;Up: &quot;, counts$Up), 
+           hjust = 1, vjust = 1, col = &quot;#E41A1C&quot;) +
+  
+  annotate(&quot;text&quot;, x = min(DMD_vs_WT$avg_log2FC, na.rm=TRUE), 
+           y = max(-log10(DMD_vs_WT$p_val_adj), na.rm=TRUE), 
+           label = paste0(&quot;Down: &quot;, counts$Down), 
+           hjust = 0, vjust = 1, col = &quot;#00AFBB&quot;)
+
+# Top genes significantly up
+top_up &lt;- DMD_vs_WT %&gt;%
+  filter(regulation == &quot;Up&quot;) %&gt;%
+  arrange(p_val_adj, desc(avg_log2FC)) %&gt;%
+  slice_head(n = 20)
+
+# Top genes significantly down
+top_down &lt;- DMD_vs_WT %&gt;%
+  filter(regulation == &quot;Down&quot;) %&gt;%
+  arrange(p_val_adj, avg_log2FC) %&gt;%
+  slice_head(n = 20)</code></pre>
+</details>
+<p><img src="project_2_dmd-rat_files/figure-html/DMD_vs_WT_volcano_plot-1.png" width="672" /></p>
+</div>
+<div id="which-go_bp-terms-are-enriched-among-these-updown-genes"
+class="section level2">
+<h2>#2 - Which GO_BP terms are enriched among these up/down genes?</h2>
+<details>
+<summary>
+<strong>GO enrichment analysis</strong>
+</summary>
+<pre class="r"><code># GO analysis on Up genes ----
+
+## gene symbols to Entrez IDs
+DMD_vs_WT_Up &lt;- bitr((DMD_vs_WT %&gt;% filter(regulation==&quot;Up&quot;))$gene,
+                fromType = &quot;SYMBOL&quot;,
+                toType = &quot;ENTREZID&quot;,
+                OrgDb = org.Rn.eg.db)
+
+## GO enrichment
+ego &lt;- enrichGO(gene          = DMD_vs_WT_Up$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = &quot;ENTREZID&quot;,
+                ont           = &quot;BP&quot;,      # biological process
+                pAdjustMethod = &quot;BH&quot;,
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+## visualize ----
+df &lt;- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df &lt;- df %&gt;%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts &lt;- strsplit(x, &quot;/&quot;)[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top &lt;- df %&gt;%
+    filter(Description %in% c(
+      &quot;extracellular matrix organization&quot;,
+      &quot;connective tissue development&quot;,
+      &quot;transforming growth factor beta receptor superfamily signaling pathway&quot;,
+      &quot;wound healing&quot;, 
+      &quot;tissue remodeling&quot;, 
+      &quot;negative regulation of cell migration&quot;
+    )) %&gt;% 
+    arrange(desc(GeneRatioNum)) %&gt;%
+    mutate(Description = recode(Description, &quot;extracellular matrix organization&quot; = &quot;ECM organization&quot;, &quot;transforming growth factor beta receptor superfamily signaling pathway&quot; = &quot;TGFb signaling&quot;, &quot;negative regulation of cell migration&quot; = &quot;negative regulation of\ncell migration&quot;))  %&gt;%
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+DMD_vs_WT_Up_GOBP &lt;- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = &quot;-log10(adj p)&quot;, option = &quot;C&quot;) +
+  labs(x = &quot;Gene Ratio&quot;, y = NULL, title = &quot;GO enrichment of\ngenes upregulated in DMD versus WT rat diaphragm&quot;) +
+  theme_classic()
+
+
+# GO analysis on Down genes ----
+
+## gene symbols to Entrez IDs
+DMD_vs_WT_Down &lt;- bitr((DMD_vs_WT %&gt;% filter(regulation==&quot;Down&quot;))$gene,
+                fromType = &quot;SYMBOL&quot;,
+                toType = &quot;ENTREZID&quot;,
+                OrgDb = org.Rn.eg.db)
+
+## GO enrichment
+ego &lt;- enrichGO(gene          = DMD_vs_WT_Down$ENTREZID,
+                OrgDb         = org.Rn.eg.db,
+                keyType       = &quot;ENTREZID&quot;,
+                ont           = &quot;BP&quot;,      # biological process
+                pAdjustMethod = &quot;BH&quot;,
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.2)
+
+## visualize ----
+df &lt;- as.data.frame(ego@result)
+  
+  # GeneRatio to numeric
+  df &lt;- df %&gt;%
+    mutate(GeneRatioNum = sapply(GeneRatio, function(x) {
+    parts &lt;- strsplit(x, &quot;/&quot;)[[1]]
+    as.numeric(parts[1]) / as.numeric(parts[2])
+  }))
+  
+  # select BP terms
+  top &lt;- df %&gt;%
+    filter(Description %in% c(
+      &quot;immune response-activating signaling pathway&quot;,
+      &quot;lymphocyte proliferation&quot;,
+      &quot;leukocyte cell-cell adhesion&quot;,
+      &quot;B cell activation&quot;,
+      &quot;T cell differentiation&quot;
+    )) %&gt;% 
+    arrange(desc(GeneRatioNum)) %&gt;%
+    mutate(Description, recode(Description, &quot;immune response-activating signaling pathway&quot; = &quot;immune response-activating\nsignaling pathway&quot;)) %&gt;% 
+    mutate(Description = factor(Description, levels = rev(Description)))
+  
+  # plot
+DMD_vs_WT_Down_GOBP &lt;- ggplot(top, aes(x = GeneRatioNum, y = Description, fill = -log10(p.adjust))) +
+  geom_col(width = 0.5) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_fill_viridis_c(name = &quot;-log10(adj p)&quot;, option = &quot;C&quot;) +
+  labs(x = &quot;Gene Ratio&quot;, y = NULL, title = &quot;GO enrichment of\ngenes downregulated in DMD versus WT rat diaphragm&quot;) +
+  theme_classic()</code></pre>
+</details>
+<p><img src="project_2_dmd-rat_files/figure-html/go_enrich_among_DEGs-1.png" width="1728" /></p>
+</div>
+<div id="bis---gene-set-enrichment-analysis-gsea"
+class="section level2">
+<h2>#2bis - Gene Set Enrichment Analysis (GSEA)</h2>
+<details>
+<summary>
+<strong>Step 1: Create ranked gene list</strong>
+</summary>
+<pre class="r"><code># Add column for Entrez IDs converted from gene symbols 
+DMD_vs_WT$ENTREZID &lt;- mapIds(
+  org.Rn.eg.db,
+  keys = DMD_vs_WT$gene,
+  column = &quot;ENTREZID&quot;,
+  keytype = &quot;SYMBOL&quot;,
+  multiVals = &quot;first&quot;
+)
+
+# Create a ranked list ----
+DMD_vs_WT_ranked &lt;- DMD_vs_WT %&gt;% 
+  arrange(desc(avg_log2FC)) %&gt;%
+  pull(avg_log2FC, name=ENTREZID) # create named vector
+
+head(DMD_vs_WT_ranked)</code></pre>
+<pre><code>##    25544   364680   689790    29576   313019   360457 
+## 9.753928 7.516029 7.177650 6.690842 6.491717 6.489238</code></pre>
+</details>
+<details>
+<summary>
+<strong>Step 2: Obtain the gene sets of interest</strong>
+</summary>
+<pre class="r"><code>rat_GOBP &lt;- msigdbr(
+  species = &quot;Rattus norvegicus&quot;,
+  category = &quot;C5&quot;,
+  subcategory = &quot;GO:BP&quot;
+) %&gt;% dplyr::select(gs_name, entrez_gene)</code></pre>
+</details>
+<table class="table table-striped table-hover table-condensed table-responsive" style="margin-left: auto; margin-right: auto;">
+<caption>
+Gene sets associated with GO biological processes
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+gs_name
+</th>
+<th style="text-align:left;">
+entrez_gene
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+GOBP_10_FORMYLTETRAHYDROFOLATE_METABOLIC_PROCESS
+</td>
+<td style="text-align:left;">
+300328
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+GOBP_10_FORMYLTETRAHYDROFOLATE_METABOLIC_PROCESS
+</td>
+<td style="text-align:left;">
+64392
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+GOBP_10_FORMYLTETRAHYDROFOLATE_METABOLIC_PROCESS
+</td>
+<td style="text-align:left;">
+299699
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+GOBP_10_FORMYLTETRAHYDROFOLATE_METABOLIC_PROCESS
+</td>
+<td style="text-align:left;">
+64300
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+GOBP_10_FORMYLTETRAHYDROFOLATE_METABOLIC_PROCESS
+</td>
+<td style="text-align:left;">
+361472
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+GOBP_2FE_2S_CLUSTER_ASSEMBLY
+</td>
+<td style="text-align:left;">
+502367
+</td>
+</tr>
+</tbody>
+</table>
+<details>
+<summary>
+<strong>Step 3: Run GSEA with all GOBP gene sets</strong>
+</summary>
+<pre class="r"><code>rat_GOBP_gsea &lt;- GSEA(
+  DMD_vs_WT_ranked,
+  TERM2GENE = rat_GOBP,
+  pvalueCutoff = 0.05)</code></pre>
+</details>
+<table class="table table-striped table-hover table-condensed table-responsive" style="margin-left: auto; margin-right: auto;">
+<caption>
+GSEA results
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:left;">
+ID
+</th>
+<th style="text-align:left;">
+Description
+</th>
+<th style="text-align:right;">
+setSize
+</th>
+<th style="text-align:right;">
+enrichmentScore
+</th>
+<th style="text-align:right;">
+NES
+</th>
+<th style="text-align:right;">
+pvalue
+</th>
+<th style="text-align:right;">
+p.adjust
+</th>
+<th style="text-align:right;">
+qvalue
+</th>
+<th style="text-align:right;">
+rank
+</th>
+<th style="text-align:left;">
+leading_edge
+</th>
+<th style="text-align:left;">
+core_enrichment
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+GOBP_ANTIGEN_RECEPTOR_MEDIATED_SIGNALING_PATHWAY
+</td>
+<td style="text-align:left;">
+GOBP_ANTIGEN_RECEPTOR_MEDIATED_SIGNALING_PATHWAY
+</td>
+<td style="text-align:left;">
+GOBP_ANTIGEN_RECEPTOR_MEDIATED_SIGNALING_PATHWAY
+</td>
+<td style="text-align:right;">
+117
+</td>
+<td style="text-align:right;">
+-0.6075273
+</td>
+<td style="text-align:right;">
+-2.568276
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+868
+</td>
+<td style="text-align:left;">
+tags=41%, list=9%, signal=38%
+</td>
+<td style="text-align:left;">
+29645/54259/301173/24930/308496/24627/315707/25155/313050/89783/85471/315348/65206/301348/499537/25300/54319/367901/295338/24699/25023/287974/499356/366508/81511/290639/286975/24931/25710/498075/308501/116689/300678/293783/363577/305311/364403/315609/365948/305269/307199/498232/365367/171055/309217/100913063/63835/548326
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+GOBP_IMMUNE_RESPONSE_REGULATING_CELL_SURFACE_RECEPTOR_SIGNALING_PATHWAY
+</td>
+<td style="text-align:left;">
+GOBP_IMMUNE_RESPONSE_REGULATING_CELL_SURFACE_RECEPTOR_SIGNALING_PATHWAY
+</td>
+<td style="text-align:left;">
+GOBP_IMMUNE_RESPONSE_REGULATING_CELL_SURFACE_RECEPTOR_SIGNALING_PATHWAY
+</td>
+<td style="text-align:right;">
+193
+</td>
+<td style="text-align:right;">
+-0.5428812
+</td>
+<td style="text-align:right;">
+-2.478978
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+951
+</td>
+<td style="text-align:left;">
+tags=35%, list=10%, signal=32%
+</td>
+<td style="text-align:left;">
+155918/691993/29645/362432/54259/301173/170538/24930/308496/287719/24627/315707/25155/313050/89783/85471/315348/65206/301348/289785/499537/24934/85420/25300/54319/367901/295338/25145/79113/24699/25156/25023/287974/499356/366508/81511/407756/25734/290639/65146/286975/114091/24931/25110/25710/498075/308501/116689/300678/293783/24232/363577/305311/364403/289395/315609/365948/29684/305269/307199/498232/365367/171055/309217/100913063/63835/548326
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+GOBP_EXTERNAL_ENCAPSULATING_STRUCTURE_ORGANIZATION
+</td>
+<td style="text-align:left;">
+GOBP_EXTERNAL_ENCAPSULATING_STRUCTURE_ORGANIZATION
+</td>
+<td style="text-align:left;">
+GOBP_EXTERNAL_ENCAPSULATING_STRUCTURE_ORGANIZATION
+</td>
+<td style="text-align:right;">
+192
+</td>
+<td style="text-align:right;">
+0.5727757
+</td>
+<td style="text-align:right;">
+2.395294
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1171
+</td>
+<td style="text-align:left;">
+tags=41%, list=12%, signal=36%
+</td>
+<td style="text-align:left;">
+25304/282821/304608/292401/304802/304021/315714/24914/94338/25426/24498/192203/66015/25341/314981/296654/305494/299236/689388/64387/25267/29175/294337/366251/94339/192179/361840/311827/315191/366474/289178/311642/25043/299737/287899/360627/81707/81682/294027/313592/299858/85250/297339/689788/171547/362393/171396/84032/305338/25694/312478/299996/85490/310552/363126/685781/293677/363767/24179/29610/309368/300474/678743/680712/116487/81686/315879/293997/29393/499431/50662/302248/50554/688673/25654/59101/680611/64475
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+GOBP_LYMPHOCYTE_ACTIVATION
+</td>
+<td style="text-align:left;">
+GOBP_LYMPHOCYTE_ACTIVATION
+</td>
+<td style="text-align:left;">
+GOBP_LYMPHOCYTE_ACTIVATION
+</td>
+<td style="text-align:right;">
+475
+</td>
+<td style="text-align:right;">
+-0.4658729
+</td>
+<td style="text-align:right;">
+-2.350523
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1238
+</td>
+<td style="text-align:left;">
+tags=32%, list=13%, signal=30%
+</td>
+<td style="text-align:left;">
+296732/679811/501736/25621/84023/501099/294269/303356/378947/54355/305501/81822/25404/24392/29337/171371/361537/79237/156726/497932/362814/25572/365542/25369/309304/311332/64625/499745/294900/311647/29645/362432/499337/54259/81780/315119/301173/311144/170538/24930/308496/308995/297584/365395/287362/293023/309621/84405/679975/25193/310663/500318/303511/315707/25599/363058/366126/50646/64569/25155/313050/50669/89783/314423/84357/85471/317371/24796/361226/317218/315348/306934/25704/301348/56822/24934/85420/25300/301365/367901/295338/25145/79113/366518/24699/308977/171333/498582/25156/25752/25023/64545/499356/361697/315610/306071/25050/366508/81511/29304/305341/290639/303496/288905/301133/65146/24984/497761/317578/171062/117547/155151/24931/25110/25710/500449/293698/308501/500910/116689/366957/300678/84349/363577/54236/289395/498287/315609/310688/365948/29684/312495/291100/498232/365390/689932/294706/679957/365367/64315/171055/308163/25253/309217/100913063/29215/315075/103693341/63835/301626/690528/24684/291675/680665
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+GOBP_ADAPTIVE_IMMUNE_RESPONSE
+</td>
+<td style="text-align:left;">
+GOBP_ADAPTIVE_IMMUNE_RESPONSE
+</td>
+<td style="text-align:left;">
+GOBP_ADAPTIVE_IMMUNE_RESPONSE
+</td>
+<td style="text-align:right;">
+257
+</td>
+<td style="text-align:right;">
+-0.4919942
+</td>
+<td style="text-align:right;">
+-2.329365
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+950
+</td>
+<td style="text-align:left;">
+tags=33%, list=10%, signal=31%
+</td>
+<td style="text-align:left;">
+365542/361689/309304/362432/54259/24468/170538/24930/308496/297584/365395/287362/309621/84405/679975/500318/315707/25599/363058/50646/25155/50669/85471/317371/24796/315348/79559/301348/289785/56822/24934/85420/25300/301365/367901/366518/24699/308977/171333/25752/25023/287974/25050/366508/303298/24835/81511/407756/303496/288905/65146/286975/24984/317578/24931/25110/25710/498075/500449/500910/116689/300678/84349/25746/24232/363577/305311/289395/498287/315609/291100/307199/498232/292844/689932/365367/171055/308163/100913063/29215/103693341/25008/63835/548326/301626
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+GOBP_IMMUNE_RESPONSE_REGULATING_SIGNALING_PATHWAY
+</td>
+<td style="text-align:left;">
+GOBP_IMMUNE_RESPONSE_REGULATING_SIGNALING_PATHWAY
+</td>
+<td style="text-align:left;">
+GOBP_IMMUNE_RESPONSE_REGULATING_SIGNALING_PATHWAY
+</td>
+<td style="text-align:right;">
+294
+</td>
+<td style="text-align:right;">
+-0.4850619
+</td>
+<td style="text-align:right;">
+-2.326873
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1142
+</td>
+<td style="text-align:left;">
+tags=32%, list=12%, signal=29%
+</td>
+<td style="text-align:left;">
+362050/501736/25621/501095/362289/25404/29337/366014/361537/362613/58923/155918/361689/691993/29645/362432/54259/301173/282845/24468/170538/24930/308496/287362/287719/303538/360534/24627/315707/317468/25155/313050/89783/85471/680862/315348/65206/301348/289785/499537/24934/85420/25300/54319/367901/295338/25145/79113/24699/25156/287818/25023/287974/499356/366508/24835/81511/407756/25734/290639/65146/286975/114091/117547/24931/25110/25710/498075/308501/116689/360900/300678/293783/24232/363577/305311/364403/289395/315609/365948/29684/304987/305269/291100/307199/498232/24890/365367/171055/309217/100913063/63835/548326
+</td>
+</tr>
+</tbody>
+</table>
+<details>
+<summary>
+<strong>Visualize GSEA results: Up &amp; Down GOBPs</strong>
+</summary>
+<pre class="r"><code>gsea_res &lt;- as.data.frame(rat_GOBP_gsea)
+up_pathways &lt;- gsea_res %&gt;% filter(NES &gt; 0 &amp; p.adjust &lt; 0.05)
+down_pathways &lt;- gsea_res %&gt;% filter(NES &lt; 0 &amp; p.adjust &lt; 0.05)
+
+# Select top pathways based on enrichment score ----
+top_up &lt;- up_pathways %&gt;% arrange(desc(NES)) %&gt;% head(10)
+top_down &lt;- down_pathways %&gt;% arrange(NES) %&gt;% head(10)
+
+  # combine (up to down)
+  top_combined &lt;- bind_rows(top_up, top_down)
+
+# Plot ----
+p &lt;- ggplot(top_combined, 
+       aes(x = reorder(Description, NES), 
+           y = NES, fill = NES &gt; 0)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c(&quot;TRUE&quot; = &quot;firebrick&quot;, &quot;FALSE&quot; = &quot;steelblue&quot;),
+                    labels = c(&quot;Down&quot;, &quot;Up&quot;)) +
+  labs(x = &quot;&quot;, y = &quot;Normalized Enrichment Score (NES)&quot;,
+       fill = &quot;&quot;,
+       title = &quot;Top up- and down-regulated GO:BP pathways&quot;) +
+  theme_bw() +
+  theme(text = element_text(size = 12))</code></pre>
+</details>
+<p><img src="project_2_dmd-rat_files/figure-html/display_gsea_plot-1.png" width="1440" /></p>
+</div>
+<div id="is-there-any-module-of-genes" class="section level2">
+<h2>#3 - Is there any module of genes?</h2>
+<p>(also known as Co-expression Network Analysis; though we don’t seem
+to have enough samples for this task.) This part follows the <a
+href="https://smorabit.github.io/hdWGCNA/articles/basic_tutorial.html">tutorial</a>
+on hdWGCNA package website.</p>
+<div id="set-up-seurat-object-for-wgcna" class="section level3">
+<h3>Set up Seurat object for WGCNA</h3>
+<pre class="r"><code>library(hdWGCNA)
+library(WGCNA)
+merged_data &lt;- SetupForWGCNA(
+  merged_data,
+  
+  # use genes that are expressed in 5% of cells in each &#39;group.by&#39;:
+  gene_select = &quot;fraction&quot;, fraction = 0.05,
+  
+  wgcna_name = &quot;macrophage&quot; # name hdWGCNA experiment
+                            # one Seurat object can hold multiple hdWGCNA experiments
+)</code></pre>
+</div>
+<div id="construct-metacells" class="section level3">
+<h3>Construct metacells</h3>
+<pre class="r"><code># metacell = aggregate of similar single cells ==&gt; reduce data sparsity
+# Here, we construct metacells by group cells of same celltype in same condition
+merged_data &lt;- MetacellsByGroups(
+  seurat_obj = merged_data,
+  group.by = c(&quot;celltype&quot;, &quot;condition&quot;),
+  reduction = &quot;RNA_pca&quot;,
+  k = 10, # nearest-neighbors; choose higher k for larger datasets
+  max_shared = 5, # max number of shared cells between two metacells
+  ident.group = &#39;celltype&#39; # set the Idents of the metacell Seurat object
+)</code></pre>
+<table class="table table-striped table-hover table-condensed table-responsive" style="margin-left: auto; margin-right: auto;">
+<caption>
+metacells info is stored in <span
+class="citation">(<strong>misc?</strong>)</span>
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+name
+</th>
+<th style="text-align:right;">
+max_shared
+</th>
+<th style="text-align:right;">
+mean_shared
+</th>
+<th style="text-align:right;">
+median_shared
+</th>
+<th style="text-align:right;">
+density
+</th>
+<th style="text-align:right;">
+n
+</th>
+<th style="text-align:left;">
+celltype
+</th>
+<th style="text-align:left;">
+condition
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+B cell#WT
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+1.0689655
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.4325044
+</td>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:left;">
+B cell
+</td>
+<td style="text-align:left;">
+WT
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Endothelial#DMD
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.0773754
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.3020828
+</td>
+<td style="text-align:right;">
+1000
+</td>
+<td style="text-align:left;">
+Endothelial
+</td>
+<td style="text-align:left;">
+DMD
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Endothelial#WT
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.1195698
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.2275687
+</td>
+<td style="text-align:right;">
+947
+</td>
+<td style="text-align:left;">
+Endothelial
+</td>
+<td style="text-align:left;">
+WT
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+FAPs#DMD
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.1230480
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.4459595
+</td>
+<td style="text-align:right;">
+732
+</td>
+<td style="text-align:left;">
+FAPs
+</td>
+<td style="text-align:left;">
+DMD
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+FAPs#WT
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.8538206
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.4147716
+</td>
+<td style="text-align:right;">
+43
+</td>
+<td style="text-align:left;">
+FAPs
+</td>
+<td style="text-align:left;">
+WT
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Macrophage#DMD
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.4679943
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.4090214
+</td>
+<td style="text-align:right;">
+38
+</td>
+<td style="text-align:left;">
+Macrophage
+</td>
+<td style="text-align:left;">
+DMD
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Macrophage#WT
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.4487179
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.3485864
+</td>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:left;">
+Macrophage
+</td>
+<td style="text-align:left;">
+WT
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MuSCs#WT
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.6082990
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.4373060
+</td>
+<td style="text-align:right;">
+127
+</td>
+<td style="text-align:left;">
+MuSCs
+</td>
+<td style="text-align:left;">
+WT
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Myocyte#DMD
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.5241327
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.1620105
+</td>
+<td style="text-align:right;">
+52
+</td>
+<td style="text-align:left;">
+Myocyte
+</td>
+<td style="text-align:left;">
+DMD
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Smooth muscle#DMD
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.2876400
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.3717402
+</td>
+<td style="text-align:right;">
+216
+</td>
+<td style="text-align:left;">
+Smooth muscle
+</td>
+<td style="text-align:left;">
+DMD
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Smooth muscle#WT
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.6854054
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.2242028
+</td>
+<td style="text-align:right;">
+75
+</td>
+<td style="text-align:left;">
+Smooth muscle
+</td>
+<td style="text-align:left;">
+WT
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+T cell#WT
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0.6461538
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0.3798597
+</td>
+<td style="text-align:right;">
+26
+</td>
+<td style="text-align:left;">
+T cell
+</td>
+<td style="text-align:left;">
+WT
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="extract-metacell-object-and-process" class="section level3">
+<h3>Extract Metacell object and process</h3>
+<pre class="r"><code># Extract Metacell object ---- 
+DIA_metacell &lt;- GetMetacellObject(merged_data)
+
+# Process Metacell object (Seurat workflow) ----
+DIA_metacell &lt;- DIA_metacell %&gt;%
+        NormalizeData(normalization.method = &quot;LogNormalize&quot;, 
+                      scale.factor = 10000, verbose = FALSE) %&gt;%
+        FindVariableFeatures(selection.method = &quot;vst&quot;, 
+                             nfeatures = 3000, verbose = FALSE) %&gt;%
+        ScaleData(verbose = FALSE) %&gt;%
+        RunPCA(verbose = FALSE, reduction.name = &quot;RNA_pca&quot;, npcs = 50) %&gt;%
+        FindNeighbors(reduction = &quot;RNA_pca&quot;, dims = 1:10,
+                      graph.name = &quot;RNA_snn&quot;, verbose = FALSE) %&gt;%
+        FindClusters(resolution = 0.5, graph.name = &quot;RNA_snn&quot;, verbose = FALSE) %&gt;%
+        RunUMAP(reduction = &quot;RNA_pca&quot;, dims = 1:10, 
+                reduction.name = &quot;RNA_umap&quot;, verbose = FALSE)</code></pre>
+<pre><code>## Only one graph name supplied, storing nearest-neighbor graph only</code></pre>
+<pre class="r"><code># Plot ----
+p1 &lt;- DimPlot(merged_data, reduction = &quot;RNA_umap&quot;, label = TRUE) + 
+        NoLegend() + ggtitle(&quot;Single cells&quot;)
+
+p2 &lt;- DimPlot(DIA_metacell, group.by = &quot;celltype&quot;, 
+              reduction = &quot;RNA_umap&quot;, label = TRUE) + 
+        NoLegend() + ggtitle(&quot;Meta cells&quot;)
+
+p3 &lt;- DimPlot(DIA_metacell, group.by = &quot;condition&quot;, 
+              reduction = &quot;RNA_umap&quot;, repel = TRUE) + ggtitle(&quot;Meta cells&quot;)
+
+(p1 | p2 | p3)</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/extract_metacell_obj-1.png" width="1152" /></p>
+<p><u>Note:</u> When we use <code>MetacellsByGroup</code>,
+<code>min_cells = 100</code> by default, so celltype-condition groups
+that contain less than 100 cells are excluded (for example, no Neural
+cells were retained in the Metacell object).</p>
+</div>
+<div id="set-up-expression-matrix-for-co-expression-network-analysis"
+class="section level3">
+<h3>Set up expression matrix for co-expression network analysis</h3>
+<pre class="r"><code>merged_data &lt;- SetDatExpr(
+  merged_data,
+  group_name = &quot;Macrophage&quot;,  # the group of interest
+  group.by = &quot;celltype&quot;,
+  assay = &quot;RNA&quot;,
+  layer = &quot;data&quot;,             # use normalized data
+  use_metacells = FALSE       # not enough cells to use (?!)
+)</code></pre>
+<pre><code>##   ..Excluding 38 genes from the calculation due to too many missing samples or zero variance.</code></pre>
+</div>
+<div id="soft-power-threshold" class="section level3">
+<h3>Soft-power threshold</h3>
+<p>This is important to keep the strong and remove the weak connections
+(assumed to be noise).</p>
+<pre class="r"><code># Test different soft powers ----
+merged_data &lt;- TestSoftPowers(
+  merged_data,
+  networkType = &#39;signed&#39;,
+  wgcna_name = &quot;macrophage&quot;
+)</code></pre>
+<pre><code>## pickSoftThreshold: will use block size 6171.
+##  pickSoftThreshold: calculating connectivity for given powers...
+##    ..working on genes 1 through 6171 of 7249</code></pre>
+<pre><code>##    ..working on genes 6172 through 7249 of 7249</code></pre>
+<pre><code>##    Power SFT.R.sq slope truncated.R.sq  mean.k. median.k.  max.k.
+## 1      1   0.3640 38.20          0.729 3.71e+03  3.71e+03 3900.00
+## 2      2   0.2560 15.20          0.699 1.91e+03  1.90e+03 2110.00
+## 3      3   0.1550  7.53          0.774 9.87e+02  9.83e+02 1160.00
+## 4      4   0.0285  2.26          0.864 5.13e+02  5.10e+02  663.00
+## 5      5   0.0124 -1.13          0.872 2.69e+02  2.66e+02  394.00
+## 6      6   0.1170 -2.76          0.834 1.42e+02  1.39e+02  242.00
+## 7      7   0.3070 -3.79          0.779 7.53e+01  7.34e+01  155.00
+## 8      8   0.5040 -4.17          0.722 4.03e+01  3.89e+01  103.00
+## 9      9   0.7790 -4.54          0.822 2.18e+01  2.07e+01   70.80
+## 10    10   0.9470 -4.75          0.942 1.19e+01  1.11e+01   50.80
+## 11    12   0.9750 -3.90          0.968 3.68e+00  3.24e+00   28.90
+## 12    14   0.9780 -3.02          0.972 1.22e+00  9.69e-01   18.30
+## 13    16   0.9460 -2.38          0.931 4.46e-01  2.96e-01   12.50
+## 14    18   0.9180 -2.01          0.895 1.87e-01  9.25e-02    9.18
+## 15    20   0.4110 -2.27          0.266 9.36e-02  2.95e-02    8.44
+## 16    22   0.3950 -2.50          0.339 5.58e-02  9.67e-03    7.89
+## 17    24   0.3930 -2.28          0.340 3.85e-02  3.26e-03    7.45
+## 18    26   0.3730 -2.37          0.263 2.95e-02  1.12e-03    7.09
+## 19    28   0.3660 -2.44          0.208 2.43e-02  3.96e-04    6.80
+## 20    30   0.3650 -2.35          0.208 2.10e-02  1.43e-04    6.55</code></pre>
+<pre class="r"><code># Plot the results ----
+plot_list &lt;- PlotSoftPowers(merged_data)</code></pre>
+<pre><code>##   Power   SFT.R.sq     slope truncated.R.sq   mean.k. median.k.
+## 1     1 0.36378272 38.155800      0.7286976 3707.6672 3705.2911
+## 2     2 0.25628553 15.151352      0.6986581 1907.0880 1903.3692
+## 3     3 0.15471904  7.534153      0.7737225  986.5401  982.7786
+## 4     4 0.02846334  2.256402      0.8641323  513.3935  509.9191
+## 5     5 0.01239615 -1.125857      0.8722225  268.8625  265.9199
+## 6     6 0.11686295 -2.755216      0.8343697  141.7584  139.3297
+##      max.k.
+## 1 3895.1262
+## 2 2110.0537
+## 3 1163.7514
+## 4  663.3633
+## 5  393.7537
+## 6  242.0809</code></pre>
+<pre class="r"><code>wrap_plots(plot_list, ncol=2)</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/soft_power-1.png" width="768" /></p>
+</div>
+<div id="construct-co-expression-network" class="section level3">
+<h3>Construct co-expression network</h3>
+<pre class="r"><code># Construct co-expression network ----
+merged_data &lt;- ConstructNetwork(
+  merged_data, 
+  soft_power=11, # pick the lowest soft power that has scale-free topology
+  tom_outdir = &quot;projects/project_2/TOM&quot;,
+  tom_name = &#39;Macrophage&#39;, # a Topoligical Overlap Matrix named &#39;Macrophage_TOM.rda&#39; will be written in TOM ouput dir
+  overwrite_tom = TRUE
+)</code></pre>
+<pre><code>##  Calculating consensus modules and module eigengenes block-wise from all genes
+##  Calculating topological overlaps block-wise from all genes
+##    Flagging genes and samples with too many missing values...
+##     ..step 1
+##     TOM calculation: adjacency..
+##     ..will not use multithreading.
+##      Fraction of slow calculations: 0.000000
+##     ..connectivity..
+##     ..matrix multiplication (system BLAS)..
+##     ..normalization..
+##     ..done.
+##  ..Working on block 1 .
+##  ..Working on block 1 .
+##  ..merging consensus modules that are too close..</code></pre>
+<pre class="r"><code>PlotDendrogram(merged_data, main=&#39;Macrophage hdWGCNA Dendrogram&#39;)</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/plot_dendrogram-1.png" width="768" /></p>
+</div>
+<div id="get-module-assignment-table" class="section level3">
+<h3>Get module assignment table</h3>
+<pre class="r"><code># Get the module assignment table ----
+modules &lt;- GetModules(merged_data) %&gt;% subset(module != &#39;grey&#39;) # ignore the grey module
+
+# How many genes are there in each module ?
+table(modules$module)</code></pre>
+<pre><code>## 
+##      grey turquoise      blue     brown    yellow     green 
+##         0       392       236       112        77        50</code></pre>
+<p><em>For demonstration, let’s choose two genes, Col1a1 and Thbs4, and
+see how their expression correlated across cell types.</em> For this
+purpose, we may adopt some functions from this <a
+href="https://divingintogeneticsandgenomics.com/post/how-to-do-gene-correlation-for-single-cell-rnaseq-data-part-2-using-meta-cell/">blog</a>.</p>
+<details>
+<summary>
+<strong>Functions to use</strong>
+</summary>
+<pre class="r"><code>matrix_to_expression_df &lt;- function(x, obj){
+        df&lt;- x %&gt;%
+                as.matrix() %&gt;% 
+                as.data.frame() %&gt;%
+                tibble::rownames_to_column(var= &quot;gene&quot;) %&gt;%
+                tidyr::pivot_longer(cols = -1, names_to = &quot;cell&quot;, values_to = &quot;expression&quot;) %&gt;%
+                tidyr::pivot_wider(names_from = &quot;gene&quot;, values_from = expression) %&gt;%
+                left_join(obj@meta.data %&gt;% 
+                                  tibble::rownames_to_column(var = &quot;cell&quot;))
+        return(df)
+}
+
+
+get_expression_data&lt;- function(obj, assay = &quot;RNA&quot;, slot = &quot;data&quot;, 
+                               genes = NULL, cells = NULL){
+        if (is.null(genes) &amp; !is.null(cells)){
+                df&lt;- GetAssayData(obj, assay = assay, slot = slot)[, cells, drop = FALSE] %&gt;%
+                        matrix_to_expression_df(obj = obj)
+        } else if (!is.null(genes) &amp; is.null(cells)){
+                df &lt;- GetAssayData(obj, assay = assay, slot = slot)[genes, , drop = FALSE] %&gt;%
+                        matrix_to_expression_df(obj = obj)
+        } else if (is.null(genes &amp; is.null(cells))){
+                df &lt;- GetAssayData(obj, assay = assay, slot = slot)[, , drop = FALSE] %&gt;%
+                        matrix_to_expression_df(obj = obj)
+        } else {
+                df&lt;- GetAssayData(obj, assay = assay, slot = slot)[genes, cells, drop = FALSE] %&gt;%
+                        matrix_to_expression_df(obj = obj)
+        }
+        return(df)
+}</code></pre>
+</details>
+<pre class="r"><code># Select pair of genes
+genes &lt;- c(&quot;Col1a1&quot;, &quot;Thbs4&quot;)
+
+# Get normalized expression of selected genes from the matrix
+expression_data &lt;- get_expression_data(merged_data, genes = genes)</code></pre>
+<pre><code>## Joining with `by = join_by(cell)`</code></pre>
+<pre class="r"><code># Pearson correlation using single cells ----
+ggplot(expression_data, aes(x = Col1a1, y = Thbs4)) + 
+        geom_smooth(method=&quot;lm&quot;) +
+        geom_point(size = 0.8) +
+        facet_wrap(~celltype) +
+        ggpubr::stat_cor(method = &quot;pearson&quot;)</code></pre>
+<pre><code>## `geom_smooth()` using formula = &#39;y ~ x&#39;</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/correlation_plot-1.png" width="768" /></p>
+<pre class="r"><code># Pearson correlation using meta cells ----
+expr_data_metacells &lt;- get_expression_data(DIA_metacell, genes = genes)</code></pre>
+<pre><code>## Joining with `by = join_by(cell)`</code></pre>
+<pre class="r"><code>ggplot(expr_data_metacells, aes(x = Col1a1, y = Thbs4)) + 
+        geom_smooth(method=&quot;lm&quot;) +
+        geom_point(size = 0.8) +
+        facet_wrap(~celltype) +
+        ggpubr::stat_cor(method = &quot;pearson&quot;)</code></pre>
+<pre><code>## `geom_smooth()` using formula = &#39;y ~ x&#39;</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/corr_plot_metacells-1.png" width="768" /></p>
+</div>
+</div>
+<div id="which-genes-are-correlated-to-comp" class="section level2">
+<h2>#4 - Which genes are correlated to Comp?</h2>
+<p><em>Using Pearson correlation only and not based on a weighted
+network</em></p>
+<details>
+<summary>
+<strong>How to use <code>cor.test</code> function</strong>
+</summary>
+<pre class="r"><code># Select gene of interest
+target &lt;- merged_data@assays$RNA$data[&quot;Comp&quot;,]
+
+# Compute correlation with all other genes
+cor_results &lt;- apply(merged_data@assays$RNA$data, 1, function(g) cor.test(target, g, method = &quot;pearson&quot;))
+  
+  # extract correlation estimate and p.value
+  cor_df &lt;- data.frame(
+    gene = rownames(merged_data@assays$RNA$data),
+    cor  = sapply(cor_results, function(x) x$estimate),
+    pval = sapply(cor_results, function(x) x$p.value)
+)
+
+# Adjust p-values
+cor_df$adj_pval &lt;- p.adjust(cor_df$pval, method = &quot;BH&quot;)
+
+# Sort by strongest correlation
+cor_df &lt;- cor_df[order(-abs(cor_df$cor)), ]
+head(cor_df)</code></pre>
+<pre><code>##            gene       cor pval adj_pval
+## Comp.cor   Comp 1.0000000    0        0
+## Mfap5.cor Mfap5 0.4701028    0        0
+## Thbs4.cor Thbs4 0.4677836    0        0
+## Smoc2.cor Smoc2 0.4650500    0        0
+## Cilp.cor   Cilp 0.4589027    0        0
+## Dcn.cor     Dcn 0.4515522    0        0</code></pre>
+<pre class="r"><code>cor_df$group &lt;- &quot;ns&quot;  # not significant
+cor_df$group[cor_df$cor &gt; 0.3 &amp; cor_df$adj_pval &lt; 0.05] &lt;- &quot;positive&quot;
+cor_df$group[cor_df$cor &lt; -0.3 &amp; cor_df$adj_pval &lt; 0.05] &lt;- &quot;negative&quot;
+
+p &lt;- ggplot(cor_df, aes(x = cor, y = -log10(adj_pval), color = group)) +
+  geom_point(alpha = 0.7) +
+  scale_color_manual(values = c(&quot;negative&quot; = &quot;blue&quot;, &quot;positive&quot; = &quot;red&quot;, &quot;ns&quot; = &quot;gray80&quot;)) +
+  theme_minimal(base_size = 12) +
+  labs(
+    x = &quot;Pearson correlation (r)&quot;,
+    y = expression(-log[10](&quot;adjusted p-value&quot;)),
+    title = paste(&quot;Correlation volcano&quot;)
+  ) +
+  geom_vline(xintercept = c(-0.3, 0.3), linetype = &quot;dashed&quot;, color = &quot;black&quot;) +
+  geom_hline(yintercept = -log10(0.05), linetype = &quot;dashed&quot;, color = &quot;black&quot;)
+
+top_labeled &lt;- cor_df |&gt; 
+  dplyr::filter(adj_pval &lt; 0.05) |&gt; 
+  dplyr::arrange(desc(abs(cor))) |&gt; 
+  head(10)</code></pre>
+</details>
+<pre><code>## Warning: Removed 20 rows containing missing values or values outside the
+## scale range (`geom_point()`).</code></pre>
+<p><img src="project_2_dmd-rat_files/figure-html/cor.test_volcano_plot-1.png" width="480" /></p>
+</div>
+</div>
+<div id="codes-are-learned-from" class="section level1">
+<h1>Codes are learned from…</h1>
+<ul>
+<li><p><a
+href="https://satijalab.org/seurat/articles/pbmc3k_tutorial">Seurat -
+Guided Clustering Tutorial</a></p></li>
+<li><p><a
+href="https://smorabit.github.io/hdWGCNA/articles/basic_tutorial.html">hdWGCNA
+in single-cell data</a></p></li>
+<li><p>Chatomics, a bioinformatics blog by Ming Tommy Tang (check his <a
+href="https://divingintogeneticsandgenomics.com/post/how-to-do-gene-correlation-for-single-cell-rnaseq-data-part-2-using-meta-cell/">post</a>
+on how to do gene correlation using metacell)</p></li>
+<li><p>ChatGPT (of course)</p></li>
+</ul>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent"
+entry-spacing="0">
+<div id="ref-hao2023" class="csl-entry">
+Hao, Yuhan, Tim Stuart, Madeline H. Kowalski, Saket Choudhary, Paul
+Hoffman, Austin Hartman, Avi Srivastava, et al. 2023. <span>“Dictionary
+Learning for Integrative, Multimodal and Scalable Single-Cell
+Analysis.”</span> <em>Nature Biotechnology</em> 42 (2): 293–304. <a
+href="https://doi.org/10.1038/s41587-023-01767-y">https://doi.org/10.1038/s41587-023-01767-y</a>.
+</div>
+<div id="ref-morabito2023" class="csl-entry">
+Morabito, Samuel, Fairlie Reese, Negin Rahimzadeh, Emily Miyoshi, and
+Vivek Swarup. 2023. <span>“hdWGCNA Identifies Co-Expression Networks in
+High-Dimensional Transcriptomics Data.”</span> <em>Cell Reports
+Methods</em> 3 (6): 100498. <a
+href="https://doi.org/10.1016/j.crmeth.2023.100498">https://doi.org/10.1016/j.crmeth.2023.100498</a>.
+</div>
+<div id="ref-taglietti2022" class="csl-entry">
+Taglietti, Valentina, Kaouthar Kefi, Iwona Bronisz-Budzyńska, Busra
+Mirciloglu, Mathilde Rodrigues, Nastasia Cardone, Fanny Coulpier, et al.
+2022. <span>“Duchenne Muscular Dystrophy Trajectory in r-DMDdel52
+Preclinical Rat Model Identifies COMP as Biomarker of Fibrosis.”</span>
+<em>Acta Neuropathologica Communications</em> 10 (1). <a
+href="https://doi.org/10.1186/s40478-022-01355-2">https://doi.org/10.1186/s40478-022-01355-2</a>.
+</div>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

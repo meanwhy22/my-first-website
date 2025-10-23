@@ -116,7 +116,6 @@ i {
 
 /* --- Figures --- */
 .figure-caption {
-  font-style: italic;      /* keeps it italic */
   color: #777;          /* your chosen color */
   font-size: 0.85em;       /* slightly smaller */
   display: block;          /* make it appear below image */
@@ -173,4 +172,31 @@ ul, ol {
   margin-top: 0.5em;
   margin-bottom: 1em;
   padding-left: 1.5em;
+}
+
+/* --- Blockquotes --- */
+blockquote {
+  background-color: #f3f6f9;
+  padding: 0.9em 1.3em;
+  margin: 1.5em 0;
+  color: #333;
+  font-style: normal;
+  border-radius: 6px;
+  border-left: none;     /* Removed left border */
+}
+
+blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* --- Line Blocks --- */
+div.line-block {
+  background-color: #f7f9fb;
+  padding: 0.9em 1.3em;
+  margin: 1.2em 0;
+  color: #333;
+  border-radius: 6px;
+  white-space: normal;
+  font-family: inherit;
+  border-left: none;     /* Removed left border */
 }

@@ -1,9 +1,10 @@
 ---
 title: "Hello, This is Minh's Notebook"
-output: 
+output:
   html_document:
-    toc: FALSE
-    css: assets/style.css
+    theme: journal
+    base_font: Palatino
+    toc: false
 ---
 
 ***Here, I try to keep track of my sequencing data analysis practice***

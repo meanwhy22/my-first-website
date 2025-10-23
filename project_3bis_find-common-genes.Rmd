@@ -1,0 +1,183 @@
+---
+title: "Finding common dysregulated genes in different DMD models"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## DEG lists 
+
+```{r cars}
+DMD_vs_WT_rat_DEGs <- read.table(file = "projects/project_2/DEG_List/DMD_vs_WT_DEGs.txt",
+                                 header = TRUE)
+```
+
+```{r}
+knitr::kable(head(DMD_vs_WT_rat_DEGs), 
+             caption = "DE genes: DMD versus WT rat") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+```{r cars}
+DMD_vs_IsoCTR_organoid <- read.table("projects/project_1/DEG_List/Untreated_vs_IsoCTR_DEGs.txt", header = TRUE)
+
+library(org.Hs.eg.db)
+annots <- AnnotationDbi::select(org.Hs.eg.db,
+                                
+                                # ensembl ids in count table
+                                keys=DMD_vs_IsoCTR_organoid$ENSEMBL,
+                                
+                                columns=c("SYMBOL", "GENENAME"), 
+                                keytype="ENSEMBL")
+
+# Replace missing SYMBOL with the ENSEMBL ID
+annots$SYMBOL[is.na(annots$SYMBOL)] <- annots$ENSEMBL
+
+# Collapse SYMBOL, but if >1 SYMBOL, use the ENSEMBL ID instead
+annots <- annots %>%
+  group_by(ENSEMBL) %>%
+  summarise(
+    SYMBOL = ifelse(n_distinct(SYMBOL) == 1,
+                    unique(SYMBOL),
+                    ENSEMBL)
+  )
+
+# Add 'SYMBOL' column to DEG table
+DMD_vs_IsoCTR_organoid <- DMD_vs_IsoCTR_organoid %>% left_join(annots, by = "ENSEMBL")
+
+```
+
+```{r}
+knitr::kable(head(DMD_vs_IsoCTR_organoid), 
+             caption = "DE genes: DMD versus IsoCTR human muscle organoids") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+```{r cars}
+integrated_harmony <- readRDS("~/project_3_mdx-mdxD2-mice/integrated_harmony.rds")
+
+library(Seurat)
+mdx_vs_wt_mouse_DEGs <- FindMarkers(
+  assay = "RNA", slot = "data",
+  group.by = "condition",
+  ident.1 = "mdx",
+  ident.2 = "wt",
+  integrated_harmony,
+  only.pos = FALSE,
+  verbose = FALSE
+)
+
+mdx_vs_wt_mouse_DEGs$regulation <- ifelse(
+  mdx_vs_wt_mouse_DEGs$p_val_adj < 0.01 & 
+    mdx_vs_wt_mouse_DEGs$avg_log2FC > 1, "Up",
+  ifelse( mdx_vs_wt_mouse_DEGs$p_val_adj < 0.01 & 
+            mdx_vs_wt_mouse_DEGs$avg_log2FC < -1, "Down",
+          "NotSig")
+)
+```
+
+```{r}
+knitr::kable(head(mdx_vs_wt_mouse_DEGs), 
+             caption = "DE genes: mdx versus wt mice") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+```{r}
+mdxD2_vs_mdx_mouse_DEGs <- FindMarkers(
+  assay = "RNA", slot = "data",
+  group.by = "condition",
+  ident.1 = "mdxD2",
+  ident.2 = "mdx",
+  integrated_harmony,
+  only.pos = FALSE,
+  verbose = FALSE
+)
+
+mdxD2_vs_mdx_mouse_DEGs$regulation <- ifelse(
+  mdxD2_vs_mdx_mouse_DEGs$p_val_adj < 0.01 & 
+    mdxD2_vs_mdx_mouse_DEGs$avg_log2FC > 1, "Up",
+  ifelse( mdxD2_vs_mdx_mouse_DEGs$p_val_adj < 0.01 & 
+            mdxD2_vs_mdx_mouse_DEGs$avg_log2FC < -1, "Down",
+          "NotSig")
+)
+```
+
+```{r}
+knitr::kable(head(mdxD2_vs_mdx_mouse_DEGs), 
+             caption = "DE genes: mdx/D2 versus mdx mice") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+## Intersection
+
+Genes consistently upregulated in mdx (compared to wt) and mdx/D2 mice (compared to mdx) mice:
+
+```{r pressure, echo=FALSE}
+library("ggVennDiagram")
+ggVennDiagram(list(
+  rownames(mdx_vs_wt_mouse_DEGs %>% filter(regulation=="Up")),
+  rownames(mdxD2_vs_mdx_mouse_DEGs %>% filter(regulation=="Up"))
+), label_alpha = 0,
+              label = "count",
+              category.names = c("mdx vs. wt",
+                                 "mdxD2 vs. mdx")) +
+  
+  scale_fill_gradient(low = "white", high = "orange")
+```
+
+Genes consistently upregulated in mdx mouse, rat, and hiPSC-derived organoid models for DMD:
+```{r}
+x <- list(
+  toupper((DMD_vs_WT_rat_DEGs %>%filter(regulation=="Up"))$gene),
+  toupper((DMD_vs_IsoCTR_organoid_annot %>% filter(regulation=="Up"))$SYMBOL),
+  toupper((rownames(mdx_vs_wt_mouse_DEGs %>% filter(regulation=="Up"))))
+)
+
+ggVennDiagram(x, label_alpha = 0,
+              label = "count",
+              category.names = c("Up in DMD rat",
+                                 "Up in DMD human organoid",
+                                 "Up in mdx mouse")) +
+  
+  scale_fill_gradient(low = "white", high = "orange")
+
+# Get common gene names found in all 3 lists
+shared_genes <- Reduce(intersect, x)
+shared_genes
+```
+
+Which part can we find Pdlim5?
+```{r}
+library(ggVennDiagram)
+library(dplyr)
+
+# your list of sets
+x <- list(
+  toupper((DMD_vs_WT_rat_DEGs %>% filter(regulation == "Up"))$gene),
+  toupper((DMD_vs_IsoCTR_organoid_annot %>% filter(regulation == "Up"))$SYMBOL),
+  toupper((rownames(mdx_vs_wt_mouse_DEGs %>% filter(regulation == "Up"))))
+)
+
+names(x) <- c("Up in DMD rat", "Up in DMD human organoid", "Up in mdx mouse")
+
+# Suppose you want to locate this gene
+gene_to_check <- "SPP1"
+
+# Check presence in each set
+membership <- sapply(x, function(set) gene_to_check %in% set)
+
+membership
+
+```
+
+```{r}
+library(SeuratExtend)
+scenic_loom_path <- file.path(tempdir(), "pyscenic_integrated-output.loom")
+download.file("https://zenodo.org/records/10944066/files/pbmc3k_small_pyscenic_integrated-output.loom",
+              scenic_loom_path, mode = "wb")  # Use binary mode for Windows compatibility
+
+# Importing SCENIC Loom Files into Seurat
+integrated_harmony <- ImportPyscenicLoom(scenic_loom_path, seu = integrated_harmony)
+```
+

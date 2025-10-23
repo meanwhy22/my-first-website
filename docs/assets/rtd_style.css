@@ -1,0 +1,95 @@
+/* ---------- Base font & colors ---------- */
+body {
+  font-family: "Lato", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #222;
+  background: #ffffff;
+  max-width: 960px;
+  margin: 2em auto;
+  padding: 0 2em;
+}
+
+/* ---------- Headings ---------- */
+h1, h2, h3, h4 {
+  font-family: "Lato", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  color: #333;
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+}
+
+h1 { font-size: 2.2rem; border-bottom: 2px solid #e6e6e6; padding-bottom: 0.3em; }
+h2 { font-size: 1.6rem; border-bottom: 1px solid #e6e6e6; padding-bottom: 0.2em; }
+h3 { font-size: 1.3rem; }
+
+/* ---------- Links ---------- */
+a { color: #2980b9; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ---------- Table of contents ---------- */
+#TOC {
+  background: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1em;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  position: sticky;
+  top: 1em;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+#TOC ul {
+  list-style: none;
+  padding-left: 0;
+}
+#TOC li {
+  margin: 0.3em 0;
+}
+#TOC li a {
+  color: #555;
+}
+#TOC li a:hover {
+  color: #000;
+}
+
+/* ---------- Code blocks ---------- */
+pre, code {
+  font-family: "Inconsolata", "Consolas", "Monaco", monospace;
+  font-size: 0.9rem;
+}
+pre {
+  background: #f8f8f8;
+  padding: 1em;
+  border: 1px solid #e1e1e1;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+code {
+  background: #f0f0f0;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+/* ---------- Tables ---------- */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5em 0;
+}
+th, td {
+  border: 1px solid #ddd;
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+th {
+  background-color: #f2f2f2;
+  font-weight: 600;
+}
+
+/* ---------- Misc spacing ---------- */
+p, ul, ol {
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}

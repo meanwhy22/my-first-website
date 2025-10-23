@@ -1,0 +1,710 @@
+---
+title: "RNA-seq analysis of DMD muscle organoids"
+bibliography: projects/project_1/references.bib
+nocite: '@*'
+---
+
+> **Date:** 18/10/2025
+>
+> **Description:** [Palmieri et al. (2025)](https://www.biorxiv.org/content/10.1101/2023.07.26.550063v4) generated an organoid-like structure from DMD muscle cells (derived from patient iPSCs) co-cultured with fibroblasts. This dataset contains **12 samples** of **3 conditions**: IsoCTR, Untreated (disease), and Treated (disease treated with high dose of AAV gene therapy). Each condition includes **4 biological replicates**. Raw data are retrieved from the NCBI Bioproject database under accession PRJNA1208956.
+
+# From FASTQ files to count table
+
+<details>
+
+<summary>**Retrieve fastq files from database**</summary>
+
+```{bash eval=FALSE, include=TRUE}
+# Get table from ENA API
+# This table contains the links to all raw fastq files
+
+curl -s "https://www.ebi.ac.uk/ena/portal/api/filereport?accession=PRJNA1208956&result=read_run&fields=run_accession,fastq_ftp" > ena_runs.txt
+
+# Download all files
+# Paired-end reads ==> 2 fastq files for each sample
+
+awk -F'\t' 'NR>1 {print $2}' ena_runs.txt | tr ';' '\n' | while read url; do
+    wget ftp://$url
+done
+```
+
+</details>
+
+<details>
+
+<summary>**Quality control of raw reads**</summary>
+
+Raw fastq files are imported into [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) for some quality control checks. In return, we receive an HTML-based report on each fastq file.
+
+```{bash eval=FALSE, include=TRUE}
+# module load fastqc
+# mkdir -p reads_qc
+
+for sample in fastq_files/*.fastq.gz
+do
+  base=$(basename $sample .fastq.gz)
+  fastqc "fastq_files/$base.fastq.gz" --outdir reads_qc
+done
+```
+
+Looks like the adapters haven't been cut. We'll use [`fastp`](https://github.com/OpenGene/fastp), an all-in-one fastq file preprocessor, for this job.
+
+```{bash eval=FALSE, include=TRUE}
+# module load fastp
+# mkdir -p clean_reads
+
+for sample in fastq_files/*_1.fastq.gz
+do
+    base=$(basename "$sample" _1.fastq.gz)
+
+    fastp \
+        -i "fastq_files/${base}_1.fastq.gz" \
+        -I "fastq_files/${base}_2.fastq.gz" \
+        -o "clean_reads/${base}_1_clean.fastq.gz" \
+        -O "clean_reads/${base}_2_clean.fastq.gz" \
+        -h "clean_reads/${base}_fastp.html" \
+        -j "clean_reads/${base}_fastp.json" \
+        -w 12     # run one sample at a time using 12 threads
+done
+```
+
+| Note: If the job keeps crashing, try to do half the number of samples until sorted BAM, delete fastq files, then proceed the other half.
+
+Check folder size regularly:
+
+```{bash eval=FALSE, include=TRUE}
+du -sh /shared/home/minhytran/* | sort -h
+```
+
+</details>
+
+<details>
+
+<summary>**Read mapping to reference genome**</summary>
+
+Prior to alignment, we need to download human reference genome (GRCh38/hg38) and index it.
+
+```{bash eval=FALSE, include=TRUE}
+# Download reference genome
+curl -o ref_genome/GCF_000001405.40_GRCh38.p14_genomic.fna.gz \
+https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.fna.gz
+
+# To decompress fasta file :
+# gunzip GCF_000001405.40_GRCh38.p14_genomic.fna.gz
+
+
+# Build genome indexes :
+# module load hisat2
+# mkdir -p ref_genome/index_hisat2 
+hisat2-build ref_genome/Homo_sapiens.GRCh38.dna.primary_assembly.fa \
+ref_genome/index_hisat2/human
+```
+
+Now we'll map the (paired) reads to the reference. Remember to use 'clean' fastq files. To avoid crashing the alignment, directly output sorted BAM files (skip SAM and unsorted BAM).
+
+```{bash eval=FALSE, include=TRUE}
+# module load hisat2 samtools
+# mkdir -p reads_mapping
+
+for sample in clean_reads/SRR3207614*_1_clean.fastq.gz 
+do 
+  
+  base=$(basename "$sample" _1_clean.fastq.gz)
+  
+  hisat2 -q -p 12 \
+  --summary-file "./reads_mapping/summary_${base}.txt" \
+  -x "./ref_genome/index_hisat2/human" \
+  -1 "./clean_reads/${base}_1_clean.fastq.gz" \
+  -2 "./clean_reads/${base}_2_clean.fastq.gz" \
+| samtools sort -@ 12 -o ./reads_mapping/${base}.sorted.bam
+  
+done
+```
+
+</details>
+
+<details>
+
+<summary>**Manipulate SAM/BAM file with Samtools**</summary>
+
+-   Convert SAM to BAM file (binary format) → save space (done previously)
+
+-   BAM files need to be *sorted* (done previously) and *indexed*
+
+```{bash eval=FALSE, include=TRUE}
+# module load samtools
+
+for sample in reads_mapping/*.sorted.bam
+do 
+  base=$(basename "$sample" .sorted.bam)
+  
+  # Index sorted BAM
+  samtools index "reads_mapping/${base}.sorted.bam"
+
+done
+```
+
+</details>
+
+<details>
+
+<summary>**Generate count table**</summary>
+
+Now we'll pass all the sorted, indexed BAM files through `featureCounts` function (subread package) to generate the count matrix. We also need an annotation file to do this. Parameters `-t "exon" -g gene_id` are to count reads mapped to exon then summarize to gene-level (i.e. many exons belong to single gene id).
+
+```{bash eval=FALSE, include=TRUE}
+# Download annotation file (.gtf)
+wget ftp://ftp.ensembl.org/pub/release-100/gtf/homo_sapiens/Homo_sapiens.GRCh38.100.gtf.gz
+# Unzip (then move to ref_genome folder)
+gunzip Homo_sapiens.GRCh38.100.gtf.gz
+
+# module load subread
+# Remember -p to tell featureCounts that BAM files contain paired-end reads
+
+featureCounts -a ./ref_genome/Homo_sapiens.GRCh38.100.gtf \
+-s 0 -t "exon" -g gene_id \
+-p --countReadPairs \
+-o ./count_matrix.counts \
+./reads_mapping/SRR*.sorted.bam
+```
+
+</details>
+
+Now we can read the **count matrix** into R:
+
+```{r read_count_table, echo=TRUE, message=FALSE, warning=FALSE}
+# Read count table
+count_tab <- read.table(file = "./projects/project_1/dmd-organoid_count_matrix.counts",
+                        header = TRUE,
+                        row.names = 1,
+                        sep = "\t",
+                        comment.char = "#")
+
+# Clean column names
+colnames(count_tab) <- gsub("^.*\\/", "", 
+                         colnames(count_tab))    # to match everything from the start of the string up to and including the last slash /
+
+colnames(count_tab) <- gsub("\\.sorted\\.bam$", "", 
+                         colnames(count_tab))    # drop ".sorted.bam"
+
+colnames(count_tab) <- gsub("^\\.\\.reads_mapping\\.", "", 
+                            colnames(count_tab)) # from the start, drop "..reads_mapping"
+
+colnames(count_tab)
+
+# Drop annotation columns and keep the counts only
+count_tab <- count_tab[, -c(1:5)]
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+knitr::kable(head(count_tab), caption = "Count table: genes as rows, samples as columns") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+And **metadata** file:
+
+```{r read_metadata, echo=TRUE, message=FALSE, warning=FALSE}
+library(readxl)
+metadata <- read_excel("./projects/project_1/dmd-organoid_metadata.xlsx")
+meta <- as.data.frame(metadata[,c(1,3)]) # keep 2 columns: sample and sample_type
+meta$sample_type <- factor(meta$sample_type) # sample_type as factor
+
+# sample names have to be rownames
+rownames(meta) <- meta$sample
+meta$sample <- NULL
+
+# Map row names (sample names) from meta to column names of count table
+name_map <- setNames(metadata$sample, metadata$sample_id)
+colnames(count_tab) <- name_map[colnames(count_tab)]
+
+# Reorder meta to match the order of columns in count table
+meta <- meta[colnames(count_tab), , drop=FALSE]
+
+# Check if it's good to go
+all(rownames(meta) == colnames(count_tab))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+knitr::kable(meta, caption = "Sample metadata") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+# Differential expression analysis with DESeq2
+
+## Create DESeqDataSet object
+
+DESeq2 expects a raw count matrix as input. The model will internally correct for library size. Remember that `nrow(colData) == ncol(countData)`.
+
+```{r create_deseq2_obj, echo=TRUE, message=FALSE, warning=FALSE}
+library(DESeq2)
+dds <- DESeqDataSetFromMatrix(
+  countData = count_tab, 
+  colData = meta,
+  design = ~ sample_type)
+dds
+```
+
+## Filter low-count genes
+
+Here we're keeping only genes that have at least 10 read counts in at least 4 samples. The mean-sd plot suggests that variance is stabilized, meaning genes with low and high mean counts all have similar variances.
+
+```{r gene_filtering, echo=TRUE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE}
+smallestGroupSize <- 4
+keep <- rowSums(counts(dds) >= 10) >= smallestGroupSize
+dds_filt <- dds[keep,]
+
+library(vsn)
+vsd <- vst(dds_filt)
+meanSdPlot(assay(vsd))
+```
+
+## Data quality control by clustering samples
+
+For differential gene expression (DEG) analysis, DESeq2 operates directly on the raw counts. However, for clustering and visualization, we better use *normalized* and *transformed* expression values. DESeq2 uses a normalization method called **median of ratios**.
+
+| Note: We have to run DEG analysis to add normalization factors (since it's an all-in-one function)
+
+```{r QC_sample_clustering, echo=TRUE, message=FALSE, warning=FALSE}
+# DESeqDataSet object does not store a matrix of normalized counts by default
+# We can to get it by: counts(dds, normalized=TRUE)
+dds_filt <- DESeq(dds_filt)
+
+select_top_genes <- order(rowMeans(counts(dds_filt, normalized=TRUE)), # mean of normalized counts of each gene across samples                 
+                                     decreasing=TRUE)[1:50] # select top 50 genes with highest mean expression  
+
+df <- as.data.frame(colData(dds_filt)[, "sample_type", drop=FALSE])
+
+# log2 transformation of normalized counts 
+# pc = 1 is pseudocount ==> log2(n + 1) 
+ntd <- normTransform(dds_filt, f = log2, pc = 1)
+```
+
+This is a heatmap of top 50 highly expressed genes. Expression values are presented as normalized, log2-transformed counts and are row-scaled (so that mean expression of each gene across samples is 0). Here we see samples are clustered based on top gene expression.
+
+```{r top_gene_heatmap, echo=TRUE, fig.height=12, fig.width=8, message=FALSE, warning=FALSE}
+library("pheatmap")
+pheatmap(assay(ntd)[select_top_genes,],          
+         scale = "row", # z score     
+         cluster_rows=TRUE,           
+         show_rownames=TRUE,                    
+         cluster_cols=TRUE,           
+         annotation_col=df)
+```
+
+We can make a heatmap of (euclidean) distances between each pair of samples. With this, we have an overall idea of how samples are similar to each other.
+
+```{r dist_matrix_heatmap, echo=TRUE, fig.height=8, fig.width=8, message=FALSE, warning=FALSE}
+sampleDists <- dist(t(assay(vsd)))  
+
+library("RColorBrewer") 
+
+sampleDistMatrix <- as.matrix(sampleDists)
+colors <- colorRampPalette(rev(brewer.pal(9, "Blues")))(255) 
+
+pheatmap(sampleDistMatrix,          
+         clustering_distance_rows=sampleDists,    
+         clustering_distance_cols=sampleDists,          
+         col=colors)
+```
+
+Another way to evaluate the batch effects is to plot the principle components of samples (PCA).
+
+```{r pca, echo=TRUE, fig.height=5, fig.width=5, message=FALSE, warning=FALSE}
+plotPCA(vsd, intgroup="sample_type", ntop=10000)
+```
+
+## DEG analysis
+
+`DESeq()` performs:
+
+-   estimation of size factors
+
+-   estimation of dispersion
+
+-   Negative Binomial GLM fitting and Wald statistics
+
+```{r diff_analysis, echo=TRUE, message=FALSE, warning=FALSE}
+# If needed, set 'IsoCTR' as baseline condition :
+# dds_filt$sample_type <- relevel(dds_filt$sample_type, ref = "IsoCTR")
+# dds_filt <- DESeq(dds_filt)
+resultsNames(dds_filt) # names of the individual effects (coefficients)
+```
+
+p values are corrected by Benjamin-Hochberg with `alpha = 0.05`. **How many genes were (significantly) up/down-regulated in 'Treated' compared to 'IsoCTR'?**
+
+```{r echo=TRUE}
+
+Treated_vs_IsoCTR <- results(dds_filt,
+                             name = "sample_type_Treated_vs_IsoCTR",
+                             alpha = 0.05)
+summary(Treated_vs_IsoCTR)
+```
+
+For the volcano plot, we'll use the full `results` table and highlight the significant hits. Be careful that there are genes where `padj` is missing due to independent filtering inside DESeq2 (prior to multiple testing correction) or `log2FoldChange` is missing if a gene has zero counts across all samples of one condition.
+
+<details>
+
+<summary>**Make a volcano plot of DEGs**</summary>
+
+```{r volcano_plot, echo=TRUE, fig.height=7, fig.width=7, message=FALSE, warning=FALSE}
+
+# Libraries 
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+library(dplyr)
+library(tibble)
+
+# Prepare DEGs data frame
+Treated_vs_IsoCTR_DEGs <- Treated_vs_IsoCTR %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var = "ENSEMBL") %>% 
+  # Remove genes where log2FC or padj is missing
+  filter(!is.na(log2FoldChange), !is.na(padj))
+
+# Add column specifying Up/Down/NotSig genes
+Treated_vs_IsoCTR_DEGs$regulation <- ifelse(
+  Treated_vs_IsoCTR_DEGs$padj < 0.05 & 
+    Treated_vs_IsoCTR_DEGs$log2FoldChange > 1, "Up",
+  ifelse( Treated_vs_IsoCTR_DEGs$padj < 0.05 &
+            Treated_vs_IsoCTR_DEGs$log2FoldChange < -1, "Down",
+          "NotSig")
+  )
+  
+# Count up/down genes
+counts <- Treated_vs_IsoCTR_DEGs %>%
+  filter(regulation %in% c("Up","Down")) %>%
+  group_by(regulation) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  tidyr::pivot_wider(names_from = regulation, values_from = n, values_fill = 0)
+
+# Volcano plot
+p <- ggplot(data = Treated_vs_IsoCTR_DEGs,
+            aes(x = log2FoldChange,
+                y = -log10(padj))) +
+  geom_point(aes(col = regulation)) +
+  
+  # Add threshold lines
+  geom_hline(yintercept = -log10(0.05), 
+             col = "black", 
+             linetype = 'dashed') +
+  
+  geom_vline(xintercept = c(-1, 1),
+           col = "black",
+           linetype = 'dashed') +
+  
+  scale_color_manual(values = c("Down"="#00AFBB",
+                                "NotSig"="grey",
+                                "Up"="#E41A1C"),
+                     labels = c("Down"="Downregulated", 
+                                "NotSig"="Not significant", 
+                                "Up"="Upregulated")) +
+  
+  labs(x = "log2FC",
+       y = "-log10(padj)",
+       color = "Regulation", 
+       title = "Treated vs IsoCTR") + 
+  theme_minimal() +
+  
+  # Annotate number of up/down genes on the plot 
+  annotate("text", x = max(Treated_vs_IsoCTR_DEGs$log2FoldChange, na.rm=TRUE), 
+           y = max(-log10(Treated_vs_IsoCTR_DEGs$padj), na.rm=TRUE), 
+           label = paste0("Up: ", counts$Up), 
+           hjust = 1, vjust = 1, col = "#E41A1C") +
+  
+  annotate("text", x = min(Treated_vs_IsoCTR_DEGs$log2FoldChange, na.rm=TRUE), 
+           y = max(-log10(Treated_vs_IsoCTR_DEGs$padj), na.rm=TRUE), 
+           label = paste0("Down: ", counts$Down), 
+           hjust = 0, vjust = 1, col = "#00AFBB")
+```
+
+</details>
+
+```{r display_volcano_plot, echo=FALSE, message=FALSE, warning=FALSE}
+p
+```
+
+<details>
+
+<summary>Save DEG list to file</summary>
+
+```{r save_DEGs, echo=TRUE, message=FALSE, warning=FALSE}
+# Save DEG list
+write.table(Treated_vs_IsoCTR_DEGs,
+            file = "./projects/project_1/DEG_List_backup/Treated_vs_IsoCTR_DEGs.txt",
+            sep = "\t",
+            quote = FALSE,
+            row.names = FALSE)
+```
+
+</details>
+
+**How many genes were (significantly) up/down-regulated in 'Untreated' compared to 'IsoCTR'?**
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+Untreated_vs_IsoCTR <- results(dds_filt,
+                               name = "sample_type_Untreated_vs_IsoCTR",
+                               alpha = 0.05)
+summary(Untreated_vs_IsoCTR)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Remove genes where log2FC or padj is missing
+# Make row names a column EMSEMBL
+
+Untreated_vs_IsoCTR_DEGs <- 
+  Untreated_vs_IsoCTR %>%
+  as.data.frame() %>% 
+  filter(!is.na(log2FoldChange), !is.na(padj)) %>% 
+  rownames_to_column(var = "ENSEMBL")
+
+# Add column 'regulation'
+Untreated_vs_IsoCTR_DEGs$regulation <-
+ifelse( Untreated_vs_IsoCTR_DEGs$padj < 0.05 &
+          Untreated_vs_IsoCTR_DEGs$log2FoldChange > 1, "Up",
+  ifelse( Untreated_vs_IsoCTR_DEGs$padj < 0.05 &
+            Untreated_vs_IsoCTR_DEGs$log2FoldChange < -1, "Down",
+          "NotSig")
+)
+
+# Write the file
+write.table(Untreated_vs_IsoCTR_DEGs,
+            file = "./projects/project_1/DEG_List_backup/Untreated_vs_IsoCTR_DEGs.txt",
+            sep = "\t",
+            quote = FALSE,
+            row.names = FALSE)
+```
+
+**How many genes were (significantly) up/down-regulated in 'Treated' compared to 'Untreated'?**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+Treated_vs_Untreated <- 
+  results(dds_filt, 
+          contrast=c("sample_type","Treated","Untreated"),
+          alpha = 0.05)
+summary(Treated_vs_Untreated)
+```
+
+# Crossing DEG sets: Venn diagram
+
+We want to intersect 3 sets of DEGs:
+
+-   **Untreated vs IsoCTR:** genes that are differentially expressed in DMD organoid compared to isogenic control
+
+-   **Treated vs Untreated:** genes that are differentially expressed in AAV-treated DMD organoid compared to non-treated (presumably 'corrected' by gene therapy)
+
+-   **Treated vs IsoCTR:** presumably 'not corrected' by gene therapy
+
+| Note: We can use `abs(log2FoldChange) > 1` but it seems too strict.
+
+```{r venn_diagram, echo=TRUE, fig.height=10, fig.width=10, message=FALSE, warning=FALSE}
+x <- list(
+  rownames(Untreated_vs_IsoCTR %>% 
+             as.data.frame() %>% 
+             filter(padj < 0.05 & abs(log2FoldChange) > 0)),
+  rownames(Treated_vs_Untreated %>% 
+             as.data.frame() %>% 
+             filter(padj < 0.05 & abs(log2FoldChange) > 0)),
+  rownames(Treated_vs_IsoCTR %>% 
+             as.data.frame() %>% 
+             filter(padj < 0.05 & abs(log2FoldChange) > 0))
+)
+
+library("ggVennDiagram")
+ggVennDiagram(x, label_alpha = 0,
+              label = "count",
+              category.names = c("Untreated\nvs IsoCTR",
+                                 "Treated\nvs Untreated",
+                                 "Treated\nvs IsoCTR")) +
+  
+  theme(plot.margin = margin(1, 4, 1, 4, "cm"),
+        text = element_text(size = 14)) +
+  
+  scale_fill_gradient(low = "white", high = "orange")
+```
+
+# Gene Set Enrichment Analysis (GSEA)
+
+Prior to GSEA, we need to create a **ranked list** of the genes.
+
+<details>
+
+<summary>Tidy and save Treated_vs_Untreated DEG table</summary>
+
+```{r echo=TRUE}
+
+# Remove genes where log2FC or padj is missing
+# Make row names a column EMSEMBL
+
+Treated_vs_Untreated_DEGs <- 
+  Treated_vs_Untreated %>%
+  as.data.frame() %>% 
+  filter(!is.na(log2FoldChange), !is.na(padj)) %>% 
+  rownames_to_column(var = "ENSEMBL")
+
+# Add column 'regulation'
+Treated_vs_Untreated_DEGs$regulation <-
+ifelse( Treated_vs_Untreated_DEGs$padj < 0.05 &
+          Treated_vs_Untreated_DEGs$log2FoldChange > 1, "Up",
+  ifelse( Treated_vs_Untreated_DEGs$padj < 0.05 &
+            Treated_vs_Untreated_DEGs$log2FoldChange < -1, "Down",
+          "NotSig")
+)
+
+# Write the file
+write.table(Treated_vs_Untreated_DEGs,
+            file = "./projects/project_1/DEG_List_backup/Treated_vs_Untreated_DEGs.txt",
+            sep = "\t",
+            quote = FALSE,
+            row.names = FALSE)
+```
+
+</details>
+
+A bunch of ranking metrics can be used to rank the list of input genes. In the end, they should all correlate to the two phenotypes signatured by the gene set that we're interested in.
+
+Here we'll try using the `log2FoldChange` in DESeq2.
+
+| Using shrinkage of LFC estimates (toward 0) is to avoid inflation by genes with small counts/large standard errors.
+
+```{r rank_list, echo=TRUE, message=FALSE, warning=FALSE}
+Treat_vs_Untreated_DEGs <-
+read.table(file = "./projects/project_1/DEG_List/Treated_vs_Untreated_DEGs.txt",
+           header = TRUE, sep = "\t")
+
+Treat_vs_Untreated_DEGs_ranked <- Treat_vs_Untreated_DEGs %>% 
+  arrange(desc(log2FoldChange)) %>%
+  pull(log2FoldChange, name=ENSEMBL) # create named vector
+
+head(Treat_vs_Untreated_DEGs_ranked)
+```
+
+The **gene set** of interest can be obtained via the [Molecular Signatures Database (MSigDB)](https://www.gsea-msigdb.org/gsea/msigdb).
+
+```{r get_gene_set, echo=TRUE, message=FALSE, warning=FALSE}
+library(msigdbr)
+GOBP_all <- msigdbr(
+  species = "Homo sapiens",
+  collection = "C5",
+  subcollection = "GO:BP"
+) %>% 
+  dplyr::select(gs_name, ensembl_gene)
+head(GOBP_all)
+```
+
+Running GSEA with all GOBP gene sets:
+
+```{r run_gsea, echo=TRUE, message=FALSE, warning=FALSE}
+library(clusterProfiler)
+gsea_GOBP_all <- GSEA(
+  Treat_vs_Untreated_DEGs_ranked,
+  TERM2GENE = GOBP_all,
+  pvalueCutoff = 0.05)
+
+# List of gene sets with significant enrichment
+head(gsea_GOBP_all@result, 10)$ID
+```
+
+```{r dotplot, echo=TRUE, fig.height=10, fig.width=8, message=FALSE, warning=FALSE}
+library(enrichplot)
+dotplot(gsea_GOBP_all, showCategory = 20,
+        color = "NES") +
+  ggtitle("Top 20 enriched pathways")
+```
+
+<details>
+
+<summary>**How to see only terms that relate to "inflammation"?**</summary>
+
+```{r inflamm_GOBP, echo=TRUE, fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+# Subset result table for terms containing "*inflam*"
+inflam_terms <- gsea_GOBP_all@result %>%
+  filter(grepl("inflam", Description, ignore.case = TRUE))
+
+# Create a new gseaResult object
+gsea_GOBP_inflam <- gsea_GOBP_all
+# The result table in this new object is the subset one
+gsea_GOBP_inflam@result <- inflam_terms
+
+# Plot only '*inflam*'-related sets
+dotplot(gsea_GOBP_inflam, color = "NES",
+        showCategory = nrow(inflam_terms)) +
+  ggtitle("Inflammation-related GO terms")
+```
+
+</details>
+
+Plot enrichment score for terms/signatures that we're particularly interested in:
+
+```{r gsea_plot, echo=TRUE, fig.height=8, fig.width=6, message=FALSE, warning=FALSE}
+# Visualization
+library(patchwork)
+p1 <- gseaplot2(gsea_GOBP_all, geneSetID = "GOBP_POSITIVE_REGULATION_OF_INFLAMMATORY_RESPONSE",
+                            pvalue_table = TRUE)
+p1_list <- wrap_plots(p1, ncol = 1,
+                      heights = c(1,0.2,0.5),
+                      align = "v")
+
+p2 <- gseaplot2(gsea_GOBP_all, geneSetID = "GOBP_MICROTUBULE_ORGANIZING_CENTER_ORGANIZATION",
+                            pvalue_table = TRUE)
+p2_list <- wrap_plots(p2, ncol = 1,
+                      heights = c(1,0.2,0.5),
+                      align = "v")
+
+# Combine 2 plots
+library(cowplot)
+plot_grid(p1_list, p2_list, ncol = 1, align = "v")
+```
+
+# Convert ENSEMBL ID to gene symbol (optional)
+
+There are many ways to get gene names based on Ensembl IDs. However, some IDs, usually corresponding to non-coding RNAs, do not match a gene symbol (from [HGNC](https://www.genenames.org/) database). If we care only about protein-coding genes, maybe go back to `featureCounts` and consider reads that map CDS.
+
+-   Here we'll try keeping the IDs as they are for those that don't have a gene symbol.
+
+-   Same for IDs that match multiple gene symbols, we keep the Ensembl IDs to make it less ambiguous.
+
+<details>
+
+<summary>**Convert EMSEMBL ID to gene symbol**</summary>
+
+```{r convert_to_gene_symbol, echo=TRUE, message=FALSE, warning=FALSE}
+
+library(org.Hs.eg.db)
+annots <- AnnotationDbi::select(org.Hs.eg.db,
+                 
+                 # ensembl ids in count table
+                 keys=rownames(count_tab),
+                 
+                 columns=c("SYMBOL", "GENENAME"), 
+                 keytype="ENSEMBL")
+
+# Replace missing SYMBOL with the ENSEMBL ID
+annots$SYMBOL[is.na(annots$SYMBOL)] <- annots$ENSEMBL
+
+# Collapse SYMBOL, but if >1 SYMBOL, use the ENSEMBL ID instead
+annots <- annots %>%
+  group_by(ENSEMBL) %>%
+  summarise(
+    SYMBOL = ifelse(n_distinct(SYMBOL) == 1,
+                    unique(SYMBOL),
+                    ENSEMBL)
+  )
+
+# Add 'SYMBOL' column to DEG table
+Treated_vs_Untreated_DEGs_annot <- Treated_vs_Untreated_DEGs %>% left_join(annots, by = "ENSEMBL")
+```
+
+</details>
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+knitr::kable(head(Treated_vs_Untreated_DEGs_annot), caption = "Treated_vs_Untreated DEG table with gene symbols") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+**Tutorials**
+
+[Analyzing RNA-seq data with DESeq2](https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
+
+**References**

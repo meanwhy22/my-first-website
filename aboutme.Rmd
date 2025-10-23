@@ -2,13 +2,11 @@
 title: "About Minh"
 output:
   html_document:
-    theme: flatly
-    highlight: textmate
+    theme: journal
+    base_font: Palatino
     toc: false
-    toc_float: false
     includes:
       in_header: assets/fontawesome.html
-    css: assets/style.css
 ---
 
 ## Some stuff about me
